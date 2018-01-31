@@ -28,17 +28,15 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * The class node is responsible for managing Thread's connection.
  */
-public class Node {
+public class ONode implements INode {
 
-    private static final Logger log = LoggerFactory.getLogger(Node.class);
+    private static final Logger log = LoggerFactory.getLogger(ONode.class);
 
 
-    public static final int TRANSACTION_PACKET_SIZE = 1650;
     private int BROADCAST_QUEUE_SIZE;
     private int RECV_QUEUE_SIZE;
     private int REPLY_QUEUE_SIZE;
     private static final int PAUSE_BETWEEN_TRANSACTIONS = 1;
-    public static final int REQUEST_HASH_SIZE = 46;
     private static double P_SELECT_MILESTONE;
 
     private final AtomicBoolean shuttingDown = new AtomicBoolean(false);
@@ -83,7 +81,7 @@ public class Node {
     public static final ConcurrentSkipListSet<String> rejectedAddresses = new ConcurrentSkipListSet<String>();
     private DatagramSocket udpSocket;
 
-    public Node(final Configuration configuration,
+    public ONode(final Configuration configuration,
                 final Tangle tangle,
                 final TransactionValidator transactionValidator,
                 final TransactionRequester transactionRequester,
@@ -100,6 +98,7 @@ public class Node {
         this.messageQ = messageQ;
     }
 
+    @Override
     public void init() throws Exception {
 
         P_DROP_TRANSACTION = configuration.doubling(Configuration.DefaultConfSettings.P_DROP_TRANSACTION.name());
@@ -426,7 +425,7 @@ public class Node {
             try {
                 //transactionViewModel = TransactionViewModel.find(Arrays.copyOf(requestedHash.bytes(), TransactionRequester.REQUEST_HASH_SIZE));
                 transactionViewModel = TransactionViewModel.fromHash(tangle, new Hash(requestedHash.bytes(), 0, TransactionRequester.REQUEST_HASH_SIZE));
-                //log.debug("Requested Hash: " + requestedHash + " \nFound: " + transactionViewModel.getHash());
+                //log.debug("Requested Hash: " + requestedHash + " \nFound: " + transactionViewModel.getTxHash());
             } catch (Exception e) {
                 log.error("Error while searching for transaction.", e);
             }
@@ -645,6 +644,7 @@ public class Node {
         }
     }
 
+    @Override
     public void shutdown() throws InterruptedException {
         shuttingDown.set(true);
         executor.awaitTermination(6, TimeUnit.SECONDS);
@@ -704,7 +704,7 @@ public class Node {
 
     private void parseNeighborsConfig() {
         Arrays.stream(configuration.string(Configuration.DefaultConfSettings.NEIGHBORS).split(" ")).distinct()
-                .filter(s -> !s.isEmpty()).map(Node::uri).map(Optional::get)
+                .filter(s -> !s.isEmpty()).map(ONode::uri).map(Optional::get)
                 .filter(u -> isUriValid(u))
                 .map(u -> newNeighbor(u, true))
                 .peek(u -> {
@@ -713,10 +713,12 @@ public class Node {
                 }).forEach(neighbors::add);
     }
 
+    @Override
     public int queuedTransactionsSize() {
         return broadcastQueue.size();
     }
 
+    @Override
     public int howManyNeighbors() {
         return getNeighbors().size();
     }
@@ -725,19 +727,22 @@ public class Node {
         return neighbors;
     }
 
+    @Override
     public int getBroadcastQueueSize() {
         return broadcastQueue.size();
     }
 
+    @Override
     public int getReceiveQueueSize() {
         return receiveQueue.size();
     }
 
+    @Override
     public int getReplyQueueSize() {
         return replyQueue.size();
     }
 
-    public class FIFOCache<K, V> {
+    public static class FIFOCache<K, V> {
 
         private final int capacity;
         private final double dropRate;

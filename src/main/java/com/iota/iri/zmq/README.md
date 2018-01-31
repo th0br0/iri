@@ -32,7 +32,7 @@ Other topics currently found in the latest code are
 * `lmsi` for the latest solid milestone index
 * `lmhs` for the latest solid milestone hash
 * `sn` for newly confirmed transactions ( by solid milestone children measurement )
-* `tx` for newly seen transactions
+* `transaction` for newly seen transactions
 
 * `<Address>` to watch for an address to be confirmed
 

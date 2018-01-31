@@ -90,7 +90,7 @@ public class BundleValidator {
                                                     && instanceTransactionViewModels.get(j).value() == 0);
 
                                             addressInstance.squeeze(addressTrits, 0, addressTrits.length);
-                                            //if (!Arrays.equals(Converter.bytes(addressTrits, 0, TransactionViewModel.ADDRESS_TRINARY_SIZE), transactionViewModel.getAddress().getHash().bytes())) {
+                                            //if (!Arrays.equals(Converter.bytes(addressTrits, 0, TransactionViewModel.ADDRESS_TRINARY_SIZE), transactionViewModel.getAddress().getTxHash().bytes())) {
                                             if (! Arrays.equals(transactionViewModel.getAddressHash().trits(), addressTrits)) {
                                                 instanceTransactionViewModels.get(0).setValidity(tangle, -1);
                                                 break MAIN_LOOP;

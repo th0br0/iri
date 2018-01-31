@@ -7,13 +7,10 @@ import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.util.zip.CRC32;
 
+import com.iota.iri.network.INode;
 import com.iota.iri.network.TCPNeighbor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.iota.iri.conf.Configuration;
-import com.iota.iri.conf.Configuration.DefaultConfSettings;
-import com.iota.iri.network.Node;
 
 class ReplicatorSinkProcessor implements Runnable {
 
@@ -89,7 +86,7 @@ class ReplicatorSinkProcessor implements Runnable {
                                     
                                         byte[] bytes = message.array();
 
-                                        if (bytes.length == Node.TRANSACTION_PACKET_SIZE) {
+                                        if (bytes.length == INode.TRANSACTION_PACKET_SIZE) {
                                             try {
                                                 CRC32 crc32 = new CRC32();                                        
                                                 crc32.update(message.array());

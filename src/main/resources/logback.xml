@@ -3,11 +3,11 @@
 
 	<!-- Appenders -->
 	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-	   <filter class="ch.qos.logback.classic.filter.LevelFilter">
+	   <!--filter class="ch.qos.logback.classic.filter.LevelFilter">
             <level>INFO</level>
             <onMatch>ACCEPT</onMatch>
-            <onMismatch>DENY</onMismatch>
-        </filter>
+            <onMismatch>ACCEPT</onMismatch>
+        </filter-->
         
 	   <target>System.out</target>
 		<encoder>
@@ -45,17 +45,5 @@
 		</encoder>
 	</appender>
 
-	<logger name="com" level="INFO">
-		<appender-ref ref="STDOUT" />
-	</logger>
-
-	<logger name="com" level="DEBUG">
-		<appender-ref ref="STDOUT" />
-	</logger>
-
-	<logger name="com" level="ERROR ">
-		<appender-ref ref="STDERR" />
-	</logger>
-
-	<!--  root level="INFO"> <appender-ref ref="STDOUT" /> </root> -->
+	<root level="INFO"> <appender-ref ref="STDOUT" /> </root>
 </configuration>

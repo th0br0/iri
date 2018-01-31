@@ -8,16 +8,13 @@ import java.net.SocketAddress;
 import java.util.List;
 import java.util.zip.CRC32;
 
+import com.iota.iri.network.INode;
 import com.iota.iri.network.TCPNeighbor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.iota.iri.network.Neighbor;
-import com.iota.iri.conf.Configuration;
-import com.iota.iri.hash.Curl;
-import com.iota.iri.model.Hash;
 import com.iota.iri.network.Node;
-import com.iota.iri.controllers.TransactionViewModel;
 
 class ReplicatorSourceProcessor implements Runnable {
 
@@ -25,7 +22,7 @@ class ReplicatorSourceProcessor implements Runnable {
 
     private final Socket connection;
 
-    private final static int TRANSACTION_PACKET_SIZE = Node.TRANSACTION_PACKET_SIZE;
+    private final static int TRANSACTION_PACKET_SIZE = INode.TRANSACTION_PACKET_SIZE;
     private final boolean shutdown = false;
     private final Node node;
     private final int maxPeers;

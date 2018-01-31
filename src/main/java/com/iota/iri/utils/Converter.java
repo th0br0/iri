@@ -1,5 +1,7 @@
 package com.iota.iri.utils;
 
+import io.netty.buffer.ByteBuf;
+
 import java.math.BigInteger;
 import java.util.Arrays;
 
@@ -78,8 +80,10 @@ public class Converter {
     }
 
     public static void getTrits(final byte[] bytes, final int[] trits) {
+        getTrits(bytes, 0, trits);
+    }
 
-        int offset = 0;
+    public static void getTrits(final byte[] bytes, int offset, final int[] trits) {
         for (int i = 0; i < bytes.length && offset < trits.length; i++) {
             System.arraycopy(BYTE_TO_TRITS_MAPPINGS[bytes[i] < 0 ? (bytes[i] + BYTE_TO_TRITS_MAPPINGS.length) : bytes[i]], 0, trits, offset, trits.length - offset < NUMBER_OF_TRITS_IN_A_BYTE ? (trits.length - offset) : NUMBER_OF_TRITS_IN_A_BYTE);
             offset += NUMBER_OF_TRITS_IN_A_BYTE;
@@ -249,4 +253,17 @@ public class Converter {
         trits(trytes, trits, 0);
         return trits;
   }
+
+    public static void bytes(int[] trits, ByteBuf buffer, int offset, int length) {
+        final int expectedLength = (length + NUMBER_OF_TRITS_IN_A_BYTE - 1) / NUMBER_OF_TRITS_IN_A_BYTE;
+
+        for (int i = 0; i < expectedLength; i++) {
+            int value = 0;
+            for (int j = (length - i * NUMBER_OF_TRITS_IN_A_BYTE) < 5 ? (length - i * NUMBER_OF_TRITS_IN_A_BYTE) : NUMBER_OF_TRITS_IN_A_BYTE; j-- > 0; ) {
+                value = value * RADIX + trits[offset + i * NUMBER_OF_TRITS_IN_A_BYTE + j];
+            }
+
+            buffer.writeByte((byte) value);
+        }
+    }
 }

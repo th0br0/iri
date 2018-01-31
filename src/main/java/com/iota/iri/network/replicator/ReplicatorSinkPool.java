@@ -8,7 +8,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import com.iota.iri.Iota;
+import com.iota.iri.network.INode;
 import com.iota.iri.network.TCPNeighbor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +28,7 @@ public class ReplicatorSinkPool  implements Runnable {
 
     public final static int PORT_BYTES = 10;
 
-    private final DatagramPacket sendingPacket = new DatagramPacket(new byte[Node.TRANSACTION_PACKET_SIZE], Node.TRANSACTION_PACKET_SIZE);
+    private final DatagramPacket sendingPacket = new DatagramPacket(new byte[INode.TRANSACTION_PACKET_SIZE], INode.TRANSACTION_PACKET_SIZE);
 
     public ReplicatorSinkPool(Node node, int port) {
         this.node = node;

@@ -115,7 +115,7 @@ public class TransactionViewModelTest {
             System.arraycopy(blanks, 0, trits, TransactionViewModel.BRANCH_TRANSACTION_TRINARY_OFFSET + TransactionViewModel.BRANCH_TRANSACTION_TRINARY_SIZE-blanks.length, blanks.length);
             TransactionViewModel transactionViewModel = new TransactionViewModel(trits);
             transactionViewModel.store();
-            assertArrayEquals(transactionViewModel.trits(), TransactionViewModel.fromHash(transactionViewModel.getHash()).trits());
+            assertArrayEquals(transactionViewModel.trits(), TransactionViewModel.fromHash(transactionViewModel.getTxHash()).trits());
         }
         */
     }
@@ -129,7 +129,7 @@ public class TransactionViewModelTest {
             Converter.copyTrits(seed.nextLong(), trits, TransactionViewModel.VALUE_TRINARY_OFFSET, TransactionViewModel.VALUE_USABLE_TRINARY_SIZE);
             TransactionViewModel transactionViewModel = new TransactionViewModel(trits);
             transactionViewModel.store();
-            assertArrayEquals(transactionViewModel.getBytes(), TransactionViewModel.fromHash(transactionViewModel.getHash()).getBytes());
+            assertArrayEquals(transactionViewModel.getBytes(), TransactionViewModel.fromHash(transactionViewModel.getTxHash()).getBytes());
         }
         */
     }
