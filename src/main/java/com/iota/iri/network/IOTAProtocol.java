@@ -3,10 +3,13 @@ package com.iota.iri.network;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.iota.iri.TransactionValidator;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.handler.codec.FixedLengthFrameDecoder;
 import io.netty.handler.codec.MessageToMessageDecoder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -27,10 +30,13 @@ public class IOTAProtocol {
         messageVerifier = new MessageVerifier(MWM);
     }
 
-    public ChannelHandler[] getServerChannelHandlers() {
+    public ChannelHandler[] getServerChannelHandlers(Protocol protocol) {
         return new ChannelHandler[]{
-                new IOTAMessage.IOTAMessageDecoder(P_DROP_REQUEST),
-                //transactionCacher,
+                // FIXME discard CRC32 in old IRI
+                new FixedLengthFrameDecoder(protocol == Protocol.UDP ? IOTAMessage.MESSAGE_SIZE : (IOTAMessage.MESSAGE_SIZE + 16)),
+                // FIXME RequestDropper
+                new IOTAMessage.IOTAMessageDecoder(),
+                transactionCacher,
                 messageVerifier,
                 new IOTAServerHandler()
         };
@@ -39,6 +45,7 @@ public class IOTAProtocol {
     public ChannelHandler[] getClientChannelHandlers() {
         return new ChannelHandler[]{
                 messageEncoder,
+
                 // Client doesn't receive.
                 // new IOTAMessage.IOTAMessageDecoder(P_DROP_REQUEST),
                 // transactionCacher,
@@ -51,7 +58,7 @@ public class IOTAProtocol {
      * Prevents processing of a transaction too often.
      */
     @ChannelHandler.Sharable
-    class TransactionCacher extends MessageToMessageDecoder<IOTAMessage> {
+    static class TransactionCacher extends MessageToMessageDecoder<IOTAMessage> {
         // Concurrent by default.
         private final Cache<ByteBuffer, Integer> cache;
 
@@ -78,7 +85,8 @@ public class IOTAProtocol {
     }
 
     @ChannelHandler.Sharable
-    class MessageVerifier extends MessageToMessageDecoder<IOTAMessage> {
+    static class MessageVerifier extends MessageToMessageDecoder<IOTAMessage> {
+        private static final Logger LOG = LoggerFactory.getLogger(MessageVerifier.class);
         private final int MWM;
 
         public MessageVerifier(int mwm) {
@@ -88,8 +96,13 @@ public class IOTAProtocol {
         @Override
         protected void decode(ChannelHandlerContext channelHandlerContext, IOTAMessage iotaMessage, List<Object> list) throws Exception {
             IOTAMessage.TransactionMessage txMsg = (IOTAMessage.TransactionMessage) iotaMessage;
-            TransactionValidator.runValidation(txMsg.getTransaction(), MWM);
-            list.add(txMsg);
+            try {
+                TransactionValidator.runValidation(txMsg.getTransaction(), MWM);
+                list.add(txMsg);
+            } catch (Exception e) {
+                LOG.trace("Message failed validation: {}", e.getMessage());
+                // FIXME increase neighbor stats for invalid tx.
+            }
         }
     }
 }

@@ -6,10 +6,12 @@ import com.iota.iri.model.Hash;
 import com.iota.iri.utils.Converter;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelOutboundHandlerAdapter;
 import io.netty.channel.ChannelPromise;
+import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.ByteToMessageDecoder;
 
 import java.io.IOException;
@@ -30,28 +32,24 @@ abstract class IOTAMessage {
 
     static class IOTAMessageDecoder extends ByteToMessageDecoder {
         private static final SecureRandom random = new SecureRandom();
-        private final double P_DROP_TRANSACTION;
+        private byte[] byteBuf = new byte[MESSAGE_SIZE];
+        private ByteBuf buffer = Unpooled.wrappedBuffer(byteBuf);
 
-        public IOTAMessageDecoder(double pDropTransaction) {
-            P_DROP_TRANSACTION = pDropTransaction;
+        public IOTAMessageDecoder() {
         }
 
         @Override
         protected void decode(ChannelHandlerContext channelHandlerContext, ByteBuf input, List<Object> list) throws Exception {
-            if (random.nextDouble() < P_DROP_TRANSACTION) {
-                return;
+            buffer.clear();
+
+            input.readBytes(buffer, MESSAGE_SIZE);
+            // Old CRC32 values which we're discarding.
+            if (channelHandlerContext.channel() instanceof SocketChannel) {
+                input.skipBytes(16);
             }
 
-            if(input.readableBytes() < MESSAGE_SIZE) {
-                return;
-            }
-
-            // FIXME move allocation to constructor
-            ByteBuf readBytes = channelHandlerContext.alloc().heapBuffer(MESSAGE_SIZE);
-
-            input.readBytes(readBytes, MESSAGE_SIZE);
             TransactionMessage msg = new TransactionMessage();
-            msg.readFrom(readBytes);
+            msg.readFrom(buffer);
             list.add(msg);
         }
     }

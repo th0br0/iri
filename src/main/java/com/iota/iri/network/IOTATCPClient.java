@@ -32,13 +32,15 @@ public class IOTATCPClient extends IOTAClient {
 
     @Override
     public void doClose() {
-        clientFactory.destroyClient(neighbor, this);
         channel.close();
     }
 
     // This method runs on the channel's event pool.
     public void onClosed(ChannelFuture future) {
         LOG.info("Channel is closed. {}", channel);
+        channelClosed.set(true);
+        clientFactory.destroyClient(neighbor, this);
+
         // FIXME notify owner of this client of its death
     }
 

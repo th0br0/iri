@@ -13,7 +13,7 @@ public abstract class IOTAClient {
     protected final Neighbor neighbor;
     protected final InetAddress remoteAddress;
 
-    private final AtomicBoolean channelClosed = new AtomicBoolean(false);
+    protected final AtomicBoolean channelClosed = new AtomicBoolean(false);
 
     public IOTAClient(Neighbor neighbor, Channel channel, InetAddress inetAddress) {
         this.neighbor = neighbor;

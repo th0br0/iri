@@ -64,7 +64,7 @@ public class NettyTCPServer {
                 LOG.info("Accepted new TCP connection. " + ch);
 
                 ch.pipeline().addLast(new NeighborAcceptor(neighborManager));
-                ch.pipeline().addLast(protocol.getServerChannelHandlers());
+                ch.pipeline().addLast(protocol.getServerChannelHandlers(Protocol.TCP));
             }
         });
 

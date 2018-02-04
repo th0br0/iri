@@ -7,6 +7,7 @@ import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.resolver.dns.DnsNameResolver;
 import io.netty.resolver.dns.DnsNameResolverBuilder;
 import io.netty.util.concurrent.Future;
+import io.netty.util.concurrent.ScheduledFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,6 +28,7 @@ public class NeighborConnectionManager {
     private final AtomicBoolean isRunning = new AtomicBoolean(false);
     private EventLoopGroup eventGroup;
     private DnsNameResolver resolver;
+    private ScheduledFuture<?> neighborCheckerFuture;
 
     public NeighborConnectionManager(NeighborManager neighborManager, NettyConnectionManager connectionManager) {
         this.neighborManager = neighborManager;
@@ -42,12 +44,12 @@ public class NeighborConnectionManager {
         }
         isRunning.set(true);
 
-        eventGroup = new NioEventLoopGroup(4);
+        eventGroup = new NioEventLoopGroup(4, NodeUtil.getNamedThreadFactory("NeighborConnectionManager"));
         resolver = new DnsNameResolverBuilder(eventGroup.next())
                 .channelType(NioDatagramChannel.class)
                 .ttl(300, 300).build();
 
-        eventGroup.scheduleAtFixedRate(this::checkNeighborConnections, 0, 1, TimeUnit.MINUTES);
+        neighborCheckerFuture = eventGroup.scheduleAtFixedRate(this::checkNeighborConnections, 0, 1, TimeUnit.MINUTES);
     }
 
     public void shutdown() {
@@ -57,7 +59,8 @@ public class NeighborConnectionManager {
         }
         LOG.info("Starting shutdown.");
 
-        eventGroup.shutdownGracefully().syncUninterruptibly();
+        neighborCheckerFuture.cancel(true);
+        neighborCheckerFuture = null;
 
         for (Map.Entry<Neighbor, IOTAClient> entry : neighborConnections.entrySet()) {
             LOG.info("Stopping connection: {}", entry.getKey());
@@ -69,6 +72,8 @@ public class NeighborConnectionManager {
 
         neighborConnections.clear();
 
+        eventGroup.shutdownGracefully().syncUninterruptibly();
+
         LOG.info("Shutdown completed.");
     }
 
@@ -78,6 +83,10 @@ public class NeighborConnectionManager {
 
         for (Neighbor neighbor : neighbors) {
             IOTAClient client = neighborConnections.get(neighbor);
+
+            if(client != null && client.isClosed()) {
+                client = null;
+            }
 
             Future<InetAddress> futureAddress = resolver.resolve(neighbor.getHost()).syncUninterruptibly();
             InetAddress address;

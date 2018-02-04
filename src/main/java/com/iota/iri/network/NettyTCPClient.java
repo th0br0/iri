@@ -2,8 +2,10 @@ package com.iota.iri.network;
 
 import com.iota.iri.conf.Configuration;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.buffer.PooledByteBufAllocator;
-import io.netty.channel.*;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.EventLoopGroup;
 import io.netty.channel.epoll.Epoll;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.epoll.EpollSocketChannel;
@@ -14,7 +16,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.SocketAddress;
-import java.util.Optional;
 
 public class NettyTCPClient {
 
@@ -55,7 +56,7 @@ public class NettyTCPClient {
 
         bootstrap.option(ChannelOption.TCP_NODELAY, true);
         bootstrap.option(ChannelOption.SO_KEEPALIVE, true);
-        bootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 15 * 1000);
+        bootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5 * 1000);
 
         bootstrap.option(ChannelOption.SO_SNDBUF, 2 * INode.TRANSACTION_PACKET_SIZE);
         bootstrap.option(ChannelOption.SO_RCVBUF, 2 * INode.TRANSACTION_PACKET_SIZE);
@@ -63,8 +64,6 @@ public class NettyTCPClient {
         bootstrap.handler(new ChannelInitializer<SocketChannel>() {
             @Override
             public void initChannel(SocketChannel ch) {
-                LOG.info("New TCP upstream connection. " + ch);
-
                 ch.pipeline().addLast(protocol.getClientChannelHandlers());
             }
         });
