@@ -52,7 +52,10 @@ public class TransactionRequestHandler extends SimpleChannelInboundHandler<IOTAM
     }
 
     protected void addRequest(Pair<Hash, Neighbor> of) {
-        queue.add(of);
+        if(!queue.contains(of)) {
+            queue.add(of);
+        }
+
         while (queue.size() > MAX_QUEUE_SIZE) {
             queue.poll();
         }

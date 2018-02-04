@@ -85,6 +85,8 @@ public class TransactionBroadcaster extends AbstractService {
         }
 
         LOG.trace("Scheduling broadcast: {}", toBroadcast.getHash());
-        broadcastQueue.offer(toBroadcast);
+        if(!broadcastQueue.contains(toBroadcast)) {
+            broadcastQueue.offer(toBroadcast);
+        }
     }
 }
