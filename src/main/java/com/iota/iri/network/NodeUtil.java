@@ -36,7 +36,7 @@ public class NodeUtil {
                 proto = Protocol.UDP;
                 break;
             default:
-                throw new NotImplementedException();
+                throw new IllegalArgumentException();
         }
 
         return new Neighbor(proto, uri.getHost(), uri.getPort());

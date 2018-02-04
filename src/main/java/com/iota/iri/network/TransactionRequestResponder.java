@@ -7,7 +7,6 @@ import com.iota.iri.controllers.TransactionViewModel;
 import com.iota.iri.model.Hash;
 import com.iota.iri.network.handlers.TransactionRequestHandler;
 import com.iota.iri.storage.Tangle;
-import com.iota.iri.utils.Converter;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,7 +63,6 @@ public class TransactionRequestResponder extends AbstractService {
 
             if (nextRequest.isPresent()) {
                 Pair<Hash, Neighbor> request = nextRequest.get();
-                LOG.trace("Processing request {} for {}", request.getLeft(), request.getRight());
 
                 TransactionViewModel model;
                 Hash toLoad = request.getLeft();
@@ -78,7 +76,6 @@ public class TransactionRequestResponder extends AbstractService {
                         toLoad = tipsViewModel.getRandomSolidTipHash();
                     }
                 }
-                LOG.trace("Resolved request to {}", toLoad);
 
                 try {
                     model = TransactionViewModel.fromHash(tangle, toLoad);

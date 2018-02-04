@@ -69,15 +69,17 @@ public class Iota {
                 configuration.booling(Configuration.DefaultConfSettings.ZMQ_ENABLED)
         );
         tipsViewModel = new TipsViewModel();
+
         transactionRequester = new TransactionRequester(tangle, messageQ, configuration.doubling(Configuration.DefaultConfSettings.P_SELECT_MILESTONE_CHILD.name()));
         transactionValidator = new TransactionValidator(tangle, tipsViewModel, transactionRequester, messageQ);
-        network = new IOTANetwork(this);
         milestone = new Milestone(tangle, coordinator, Snapshot.initialSnapshot.clone(), transactionValidator, testnet, messageQ);
+        ledgerValidator = new LedgerValidator(tangle, milestone, transactionRequester, messageQ);
+        tipsManager = new TipsManager(tangle, ledgerValidator, transactionValidator, tipsViewModel, milestone, maxTipSearchDepth, messageQ);
+
+        network = new IOTANetwork(this);
         transactionRequestResponder = new TransactionRequestResponder(network.getNeighborConnectionManager(), network.getConnectionManager().getProtocol().getTransactionRequestHandler(), tangle,
                 tipsViewModel, milestone, transactionRequester,
                 configuration.doubling(Configuration.DefaultConfSettings.P_SEND_MILESTONE.name()));
-        ledgerValidator = new LedgerValidator(tangle, milestone, transactionRequester, messageQ);
-        tipsManager = new TipsManager(tangle, ledgerValidator, transactionValidator, tipsViewModel, milestone, maxTipSearchDepth, messageQ);
     }
 
     public void init() throws Exception {

@@ -29,7 +29,7 @@ public class TipsRequester extends AbstractService {
 
     @Override
     protected void doStart() {
-        threadPool.scheduleAtFixedRate(this::requestTip, 0, 5, TimeUnit.SECONDS);
+        threadPool.scheduleAtFixedRate(this::requestTip, 5, 5, TimeUnit.SECONDS);
         LOG.info("Started up.");
         notifyStarted();
     }
@@ -37,10 +37,9 @@ public class TipsRequester extends AbstractService {
     private void requestTip() {
         TransactionViewModel model;
         try {
-            LOG.info("Requesting random tip. Milestone: {}", milestone.latestMilestone);
             model = TransactionViewModel.fromHash(tangle, milestone.latestMilestone);
         } catch (Exception e) {
-            LOG.debug("Failed to load latest milestone.");
+            LOG.debug("Failed to load latest milestone: {}", e.getMessage());
             return;
         }
 
