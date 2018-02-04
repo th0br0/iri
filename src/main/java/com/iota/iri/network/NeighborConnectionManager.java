@@ -48,7 +48,7 @@ public class NeighborConnectionManager extends AbstractService {
                 .channelType(NioDatagramChannel.class)
                 .ttl(300, 300).build();
 
-        neighborCheckerFuture = eventGroup.next().scheduleAtFixedRate(this::checkNeighborConnections, 0, 1, TimeUnit.MINUTES);
+        neighborCheckerFuture = eventGroup.next().scheduleAtFixedRate(this::checkNeighborConnections, 0, 30, TimeUnit.SECONDS);
         notifyStarted();
 
     }
@@ -125,7 +125,7 @@ public class NeighborConnectionManager extends AbstractService {
                 neighborConnections.put(neighbor, connectionManager.connect(neighbor));
             } catch (Exception e) {
                 LOG.info("Failed to connect to {}: {}", neighbor, e.getMessage());
-                neighborConnections.put(neighbor, null);
+                neighborConnections.remove(neighbor);
             }
         }
     }
