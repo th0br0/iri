@@ -23,10 +23,12 @@ public class IOTAProtocol {
     private final TransactionCacher transactionCacher;
     private final TransactionRequestHandler transactionRequestHandler;
     private final IOTAServerHandler serverHandler;
+    private final IOTAMessage.IOTAMessageEncoder messageCRC32Encoder;
 
     public IOTAProtocol(double pDropRequest, double pReplyRandomRequest, int MWM, long cacheSize) {
         requestDropper = new RequestDropper(pDropRequest);
-        messageEncoder = new IOTAMessage.IOTAMessageEncoder();
+        messageEncoder = new IOTAMessage.IOTAMessageEncoder(false);
+        messageCRC32Encoder = new IOTAMessage.IOTAMessageEncoder(true);
         transactionCacher = new TransactionCacher(cacheSize);
         transactionRequestHandler = new TransactionRequestHandler(cacheSize, pReplyRandomRequest);
         messageVerifier = new MessageVerifier(MWM);
@@ -40,7 +42,7 @@ public class IOTAProtocol {
     public ChannelHandler[] getServerChannelHandlers(Protocol protocol) {
         return new ChannelHandler[]{
                 // FIXME discard CRC32 in old IRI
-                new FixedLengthFrameDecoder(protocol == Protocol.UDP ? IOTAMessage.MESSAGE_SIZE : (IOTAMessage.MESSAGE_SIZE + 16)),
+                new FixedLengthFrameDecoder(protocol == Protocol.UDP ? IOTAMessage.MESSAGE_SIZE : (IOTAMessage.MESSAGE_SIZE + IOTAMessage.CRC32_LENGTH)),
                 requestDropper,
                 new IOTAMessage.IOTAMessageDecoder(),
                 transactionRequestHandler,
@@ -50,9 +52,9 @@ public class IOTAProtocol {
         };
     }
 
-    public ChannelHandler[] getClientChannelHandlers() {
+    public ChannelHandler[] getClientChannelHandlers(Protocol protocol) {
         return new ChannelHandler[]{
-                messageEncoder,
+                protocol == Protocol.UDP ? messageEncoder : messageCRC32Encoder,
                 // Client doesn't receive.
                 // new IOTAMessage.IOTAMessageDecoder(P_DROP_REQUEST),
                 // transactionCacher,

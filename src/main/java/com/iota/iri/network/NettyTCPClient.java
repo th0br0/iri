@@ -56,7 +56,7 @@ public class NettyTCPClient {
         bootstrap.handler(new ChannelInitializer<SocketChannel>() {
             @Override
             public void initChannel(SocketChannel ch) {
-                ch.pipeline().addLast(protocol.getClientChannelHandlers());
+                ch.pipeline().addLast(protocol.getClientChannelHandlers(Protocol.TCP));
             }
         });
     }

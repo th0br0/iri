@@ -2,10 +2,12 @@ package com.iota.iri.network;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.iota.iri.model.Hash;
+import io.netty.buffer.ByteBuf;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ThreadFactory;
 
@@ -57,5 +59,14 @@ public class NodeUtil {
 
             return Integer.compare(tx1.trailingZeros(), tx2.trailingZeros());
         });
+    }
+
+    public static ByteBuffer toNioBuffer(ByteBuf buffer) {
+        if (buffer.isDirect()) {
+            return buffer.nioBuffer();
+        }
+        final byte[] bytes = new byte[buffer.readableBytes()];
+        buffer.getBytes(buffer.readerIndex(), bytes);
+        return ByteBuffer.wrap(bytes);
     }
 }

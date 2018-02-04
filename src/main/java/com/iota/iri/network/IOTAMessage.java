@@ -13,15 +13,17 @@ import io.netty.channel.ChannelOutboundHandlerAdapter;
 import io.netty.channel.ChannelPromise;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.ByteToMessageDecoder;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
-import java.security.SecureRandom;
 import java.util.List;
+import java.util.zip.CRC32;
 
 /**
  * @author Andreas C. Osowski
  */
 public abstract class IOTAMessage {
+    public final static int CRC32_LENGTH = 16;
     static final int MESSAGE_SIZE = 1650;
     static final int REQ_HASH_SIZE = 46;
 
@@ -44,7 +46,7 @@ public abstract class IOTAMessage {
             input.readBytes(buffer, MESSAGE_SIZE);
             // Old CRC32 values which we're discarding.
             if (channelHandlerContext.channel() instanceof SocketChannel) {
-                input.skipBytes(16);
+                input.skipBytes(CRC32_LENGTH);
             }
 
             TransactionMessage msg = new TransactionMessage();
@@ -56,9 +58,17 @@ public abstract class IOTAMessage {
 
     @ChannelHandler.Sharable
     static class IOTAMessageEncoder extends ChannelOutboundHandlerAdapter {
+
+        private final boolean addCRC32;
+
+        public IOTAMessageEncoder(boolean addCRC32) {
+            this.addCRC32 = addCRC32;
+        }
+
         @Override
         public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
             if (msg instanceof IOTAMessage) {
+                CRC32 crc = new CRC32();
                 ByteBuf serialized = null;
                 try {
                     serialized = ((IOTAMessage) msg).write(ctx.alloc());
@@ -66,7 +76,15 @@ public abstract class IOTAMessage {
                     throw new IOException("Error while serializing message: " + msg, t);
                 } finally {
                     if (serialized != null) {
-                        ctx.write(serialized, promise);
+                        serialized.resetReaderIndex();
+
+                        crc.update(NodeUtil.toNioBuffer(serialized));
+                        serialized.resetReaderIndex();
+
+                        String crc32Str = StringUtils.leftPad(Long.toHexString(crc.getValue()), CRC32_LENGTH, '0');
+
+                        ctx.write(serialized);
+                        ctx.writeAndFlush(Unpooled.wrappedBuffer(crc32Str.getBytes()), promise);
                     }
                 }
             } else {

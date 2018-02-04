@@ -14,6 +14,7 @@ public class IOTANetwork extends AbstractService {
     private final NeighborConnectionManager neighborConnectionManager;
     private final TransactionBroadcaster transactionBroadcaster;
     private final TransactionStorer transactionStorer;
+    private final TipsRequester tipsRequester;
 
     public IOTANetwork(Iota iota) {
         neighborManager = new NeighborManager();
@@ -24,6 +25,7 @@ public class IOTANetwork extends AbstractService {
 
         transactionBroadcaster = new TransactionBroadcaster(neighborConnectionManager, iota.transactionRequester, 1000);
         transactionStorer = new TransactionStorer(iota.tangle, iota.transactionRequester, iota.transactionValidator, transactionBroadcaster);
+        tipsRequester = new TipsRequester(neighborConnectionManager, iota.tangle, iota.milestone);
 
         connectionManager.getProtocol().setTransactionStorer(transactionStorer);
     }
@@ -32,10 +34,9 @@ public class IOTANetwork extends AbstractService {
     protected void doStart() {
         LOG.debug("Starting up.");
         connectionManager.startAsync().awaitRunning();
-        LOG.debug("Starting up.");
         neighborConnectionManager.startAsync().awaitRunning();
-        LOG.debug("Starting up.");
         transactionBroadcaster.startAsync().awaitRunning();
+        tipsRequester.startAsync().awaitRunning();
         LOG.info("Startup complete.");
         notifyStarted();
     }
@@ -43,6 +44,7 @@ public class IOTANetwork extends AbstractService {
     @Override
     protected void doStop() {
         LOG.debug("Shutting down.");
+        tipsRequester.stopAsync().awaitTerminated();
         transactionBroadcaster.stopAsync().awaitTerminated();
         neighborConnectionManager.stopAsync().awaitTerminated();
         connectionManager.stopAsync().awaitTerminated();

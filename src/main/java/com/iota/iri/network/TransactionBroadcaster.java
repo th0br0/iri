@@ -6,21 +6,21 @@ import com.iota.iri.model.Hash;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.BlockingQueue;
+import java.util.Comparator;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.PriorityBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class TransactionBroadcaster extends AbstractService {
     private static final Logger LOG = LoggerFactory.getLogger(TransactionBroadcaster.class);
 
-    private final NeighborConnectionManager connectionManager;
     private final int MAX_QUEUE_SIZE;
+    private final NeighborConnectionManager connectionManager;
     private final TransactionRequester transactionRequester;
 
-    private AtomicInteger queueSize = new AtomicInteger(0);
-    private ThreadPoolExecutor eventExecutor;
+    private PriorityBlockingQueue<TransactionViewModel> broadcastQueue;
+    private ExecutorService eventExecutor;
 
     public TransactionBroadcaster(NeighborConnectionManager connectionManager, TransactionRequester transactionRequester, int MAX_QUEUE_SIZE) {
         this.connectionManager = connectionManager;
@@ -32,8 +32,10 @@ public class TransactionBroadcaster extends AbstractService {
     protected void doStart() {
         LOG.debug("Starting up.");
 
-        BlockingQueue<Runnable> queue = new PriorityBlockingQueue<>(MAX_QUEUE_SIZE);
-        eventExecutor = new ThreadPoolExecutor(1, 1, 1, TimeUnit.SECONDS, queue, NodeUtil.getNamedThreadFactory("TransactionBroadcaster"));
+        broadcastQueue = new PriorityBlockingQueue<>(MAX_QUEUE_SIZE, Comparator.comparingInt(o -> o.weightMagnitude));
+        eventExecutor = Executors.newSingleThreadExecutor(NodeUtil.getNamedThreadFactory("TransactionBroadcaster"));
+
+        eventExecutor.submit(this::broadcast);
         LOG.info("Startup complete.");
         notifyStarted();
     }
@@ -51,8 +53,21 @@ public class TransactionBroadcaster extends AbstractService {
         notifyStopped();
     }
 
-    protected void doBroadcast(final TransactionViewModel toBroadcast) {
-        queueSize.decrementAndGet();
+    protected void broadcast() {
+        while (true) {
+            try {
+                TransactionViewModel toBroadcast = broadcastQueue.poll(1, TimeUnit.SECONDS);
+
+                if(toBroadcast != null) {
+                    doBroadcast(toBroadcast);
+                }
+            } catch (InterruptedException e) {
+                // No element yet.
+            }
+        }
+    }
+
+    protected void doBroadcast(TransactionViewModel toBroadcast) {
         connectionManager.getActiveClients().forEach((c) -> {
             Hash toRequest = Hash.NULL_HASH;
             try {
@@ -60,39 +75,16 @@ public class TransactionBroadcaster extends AbstractService {
             } catch (Exception e) {
             }
 
-            final Hash finalRequest = toRequest;
-
-            c.send(toBroadcast, finalRequest);
+            c.send(toBroadcast, toRequest);
         });
     }
 
-    public void scheduleBroadcast(final TransactionViewModel toBroadcast) {
-        if (queueSize.get() >= MAX_QUEUE_SIZE) {
-            return;
+    public void scheduleBroadcast(TransactionViewModel toBroadcast) {
+        while (broadcastQueue.size() >= MAX_QUEUE_SIZE) {
+            broadcastQueue.poll();
         }
+
         LOG.trace("Scheduling broadcast: {}", toBroadcast.getHash());
-        queueSize.incrementAndGet();
-        eventExecutor.submit(new WeightedRunnable(toBroadcast));
-    }
-
-    class WeightedRunnable implements Runnable, Comparable {
-        private final int trailingZeros;
-        private final TransactionViewModel model;
-
-        WeightedRunnable(TransactionViewModel model) {
-            this.model = model;
-            trailingZeros = model.getHash().trailingZeros();
-        }
-
-        @Override
-        public void run() {
-            doBroadcast(model);
-        }
-
-        @Override
-        public int compareTo(Object o) {
-            WeightedRunnable other = (WeightedRunnable) o;
-            return Integer.compare(trailingZeros, other.trailingZeros);
-        }
+        broadcastQueue.offer(toBroadcast);
     }
 }

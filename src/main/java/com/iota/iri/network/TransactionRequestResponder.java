@@ -7,6 +7,7 @@ import com.iota.iri.controllers.TransactionViewModel;
 import com.iota.iri.model.Hash;
 import com.iota.iri.network.handlers.TransactionRequestHandler;
 import com.iota.iri.storage.Tangle;
+import com.iota.iri.utils.Converter;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

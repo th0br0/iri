@@ -56,8 +56,7 @@ public class NettyUDPClient {
             @Override
             public void initChannel(SocketChannel channel) throws Exception {
                 LOG.info("New UDP upstream connection. " + channel);
-                channel.pipeline().addLast(protocol.getClientChannelHandlers());
-
+                channel.pipeline().addLast(protocol.getClientChannelHandlers(Protocol.UDP));
             }
         });
     }

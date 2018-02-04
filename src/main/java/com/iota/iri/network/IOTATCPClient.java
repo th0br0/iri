@@ -23,6 +23,7 @@ public class IOTATCPClient extends IOTAClient {
 
     @Override
     public void send(TransactionViewModel model, Hash toRequest) {
+        LOG.trace("Sending {} req {}", model.getHash(), toRequest);
         IOTAMessage.TransactionMessage msg = new IOTAMessage.TransactionMessage();
         msg.setTransaction(model);
         msg.setReqHash(toRequest);
