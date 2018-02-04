@@ -38,23 +38,20 @@ abstract class IOTAMessage {
 
         @Override
         protected void decode(ChannelHandlerContext channelHandlerContext, ByteBuf input, List<Object> list) throws Exception {
-            // Protocol is
-            // ++ TX ++ Request Hash ++
-            // If TX txHash == request txHash
-            // Client requests random TX
-
             if (random.nextDouble() < P_DROP_TRANSACTION) {
                 return;
             }
 
-
-            if (input.readableBytes() != MESSAGE_SIZE) {
+            if(input.readableBytes() < MESSAGE_SIZE) {
                 return;
             }
 
-            TransactionMessage msg = new TransactionMessage();
-            msg.readFrom(input);
+            // FIXME move allocation to constructor
+            ByteBuf readBytes = channelHandlerContext.alloc().heapBuffer(MESSAGE_SIZE);
 
+            input.readBytes(readBytes, MESSAGE_SIZE);
+            TransactionMessage msg = new TransactionMessage();
+            msg.readFrom(readBytes);
             list.add(msg);
         }
     }

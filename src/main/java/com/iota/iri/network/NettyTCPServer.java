@@ -1,12 +1,9 @@
 package com.iota.iri.network;
 
 import com.iota.iri.conf.Configuration;
-import com.iota.iri.model.Hash;
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.EventLoopGroup;
+import io.netty.buffer.ByteBuf;
+import io.netty.channel.*;
 import io.netty.channel.epoll.Epoll;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.epoll.EpollServerSocketChannel;
@@ -16,9 +13,9 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.ByteBuffer;
-
-import static com.iota.iri.network.INode.TRANSACTION_PACKET_SIZE;
+import java.net.InetSocketAddress;
+import java.nio.charset.Charset;
+import java.util.Optional;
 
 /**
  * @author Andreas C. Osowski
@@ -26,22 +23,24 @@ import static com.iota.iri.network.INode.TRANSACTION_PACKET_SIZE;
 public class NettyTCPServer {
     private static final Logger LOG = LoggerFactory.getLogger(NettyTCPServer.class);
 
-    private final Configuration configuration;
+    private final Configuration config;
 
     private final int TCP_PORT;
     private final String LISTEN_HOST;
-    private final NettyProtocol protocol;
+    private final IOTAProtocol protocol;
+    private final NeighborManager neighborManager;
 
     private ServerBootstrap bootstrap;
     private ChannelFuture bindFuture;
     private EventLoopGroup eventGroup;
 
-    public NettyTCPServer(Configuration configuration, NettyProtocol protocol) {
-        this.configuration = configuration;
+    public NettyTCPServer(Configuration config, IOTAProtocol protocol, NeighborManager neighborManager) {
+        this.config = config;
         this.protocol = protocol;
+        this.neighborManager = neighborManager;
 
-        TCP_PORT = configuration.integer(Configuration.DefaultConfSettings.TCP_RECEIVER_PORT);
-        LISTEN_HOST = configuration.string(Configuration.DefaultConfSettings.LISTEN_HOST);
+        TCP_PORT = config.integer(Configuration.DefaultConfSettings.TCP_RECEIVER_PORT);
+        LISTEN_HOST = config.string(Configuration.DefaultConfSettings.LISTEN_HOST);
     }
 
     public void init() {
@@ -59,15 +58,12 @@ public class NettyTCPServer {
 
         bootstrap.localAddress(LISTEN_HOST, TCP_PORT);
 
-        // setup pooled allocator here if necessary
-
-        bootstrap.childOption(ChannelOption.SO_RCVBUF, TRANSACTION_PACKET_SIZE);
-        bootstrap.childOption(ChannelOption.SO_SNDBUF, TRANSACTION_PACKET_SIZE);
-
         bootstrap.childHandler(new ChannelInitializer<SocketChannel>() {
             @Override
             protected void initChannel(SocketChannel ch) throws Exception {
                 LOG.info("Accepted new TCP connection. " + ch);
+
+                ch.pipeline().addLast(new NeighborAcceptor(neighborManager));
                 ch.pipeline().addLast(protocol.getServerChannelHandlers());
             }
         });
@@ -84,12 +80,64 @@ public class NettyTCPServer {
         }
 
         if (bootstrap != null) {
-            if(eventGroup != null) {
+            if (eventGroup != null) {
                 eventGroup.shutdownGracefully();
             }
             bootstrap = null;
         }
 
         LOG.info("Successfully shut down Netty TCP server.");
+    }
+
+
+    /**
+     * Verifies inbound TCP connection to come from known neighbor (as identified by TCP Receiver port)
+     */
+    @ChannelHandler.Sharable
+    static class NeighborAcceptor extends ChannelInboundHandlerAdapter {
+        private final static int PORT_BYTES = 10;
+
+        private final NeighborManager neighborManager;
+
+        public NeighborAcceptor(NeighborManager neighborManager) {
+            this.neighborManager = neighborManager;
+        }
+
+
+        @Override
+        public void channelRead(ChannelHandlerContext ctx, Object msg) {
+            if (msg instanceof ByteBuf) {
+                ByteBuf bb = (ByteBuf) msg;
+
+                if (bb.readableBytes() < PORT_BYTES) {
+                    throw new RuntimeException("Invalid receive port length: " + bb.readableBytes());
+                }
+
+                byte[] portBytes = new byte[PORT_BYTES];
+
+                ((ByteBuf) msg).readBytes(portBytes, 0, PORT_BYTES);
+                String portStr = new String(portBytes, Charset.defaultCharset());
+                int port = Integer.parseInt(portStr);
+
+                InetSocketAddress remoteAddress = new InetSocketAddress(((InetSocketAddress) ctx.channel().remoteAddress()).getAddress(), port);
+                Optional<Neighbor> neighbor = neighborManager.getNeighborForAddress(Protocol.TCP, remoteAddress);
+
+                if (!neighbor.isPresent()) {
+                    LOG.error("Unknown neighbor: " + remoteAddress);
+                    ctx.close();
+                } else {
+                    LOG.info("Neighbor connected: " + neighbor);
+                    ctx.channel().attr(Neighbor.KEY).set(neighbor.get());
+                }
+
+                ctx.pipeline().remove(this);
+            }
+        }
+
+        @Override
+        public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+            cause.printStackTrace();
+            ctx.close();
+        }
     }
 }

@@ -3,18 +3,16 @@ package com.iota.iri;
 import com.iota.iri.conf.Configuration;
 import com.iota.iri.controllers.*;
 import com.iota.iri.hash.SpongeFactory;
+import com.iota.iri.model.Hash;
+import com.iota.iri.network.NeighborConnectionManager;
+import com.iota.iri.network.NeighborManager;
 import com.iota.iri.network.NettyConnectionManager;
 import com.iota.iri.network.TransactionRequester;
-import com.iota.iri.model.Hash;
-import com.iota.iri.zmq.MessageQ;
 import com.iota.iri.service.TipsManager;
-import com.iota.iri.storage.FileExportProvider;
-import com.iota.iri.storage.Indexable;
-import com.iota.iri.storage.Persistable;
-import com.iota.iri.storage.Tangle;
-import com.iota.iri.storage.ZmqPublishProvider;
+import com.iota.iri.storage.*;
 import com.iota.iri.storage.rocksDB.RocksDBPersistenceProvider;
 import com.iota.iri.utils.Pair;
+import com.iota.iri.zmq.MessageQ;
 import org.apache.commons.lang3.NotImplementedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,13 +23,11 @@ import java.util.List;
  * Created by paul on 5/19/17.
  */
 public class Iota {
-    private static final Logger log = LoggerFactory.getLogger(Iota.class);
-
     public static final String MAINNET_COORDINATOR_ADDRESS = "KPWCHICGJZXKE9GSUDXZYUAPLHAKAHYHDXNPHENTERYMMBQOPSQIDENXKLKCEYCPVTZQLEEJVYJZV9BWU";
     public static final Hash MAINNET_COORDINATOR = new Hash(MAINNET_COORDINATOR_ADDRESS);
     public static final String TESTNET_COORDINATOR_ADDRESS = "XNZBYAST9BETSDNOVQKKTBECYIPMF9IPOZRWUPFQGVH9HJW9NDSQVIPVBWU9YKECRYGDSJXYMZGHZDXCA";
     public static final Hash TESTNET_COORDINATOR = new Hash(TESTNET_COORDINATOR_ADDRESS);
-
+    private static final Logger log = LoggerFactory.getLogger(Iota.class);
     public final LedgerValidator ledgerValidator;
     public final Milestone milestone;
     public final Tangle tangle;
@@ -43,12 +39,13 @@ public class Iota {
     public final Hash coordinator;
     public final TipsViewModel tipsViewModel;
     public final MessageQ messageQ;
-
     public final boolean testnet;
     public final int maxPeers;
     public final int udpPort;
     public final int tcpPort;
     public final int maxTipSearchDepth;
+    private final NeighborManager neighborManager;
+    private final NeighborConnectionManager neighborConnectionManager;
 
     public Iota(Configuration configuration) {
         this.configuration = configuration;
@@ -57,9 +54,9 @@ public class Iota {
         udpPort = configuration.integer(Configuration.DefaultConfSettings.UDP_RECEIVER_PORT);
         tcpPort = configuration.integer(Configuration.DefaultConfSettings.TCP_RECEIVER_PORT);
         maxTipSearchDepth = configuration.integer(Configuration.DefaultConfSettings.MAX_DEPTH);
-        if(testnet) {
+        if (testnet) {
             String coordinatorTrytes = configuration.string(Configuration.DefaultConfSettings.COORDINATOR);
-            if(coordinatorTrytes != null) {
+            if (coordinatorTrytes != null) {
                 coordinator = new Hash(coordinatorTrytes);
             } else {
                 coordinator = TESTNET_COORDINATOR;
@@ -72,12 +69,14 @@ public class Iota {
                 configuration.string(Configuration.DefaultConfSettings.ZMQ_IPC),
                 configuration.integer(Configuration.DefaultConfSettings.ZMQ_THREADS),
                 configuration.booling(Configuration.DefaultConfSettings.ZMQ_ENABLED)
-                );
+        );
         tipsViewModel = new TipsViewModel();
         transactionRequester = new TransactionRequester(tangle, messageQ);
         transactionValidator = new TransactionValidator(tangle, tipsViewModel, transactionRequester, messageQ);
-        milestone =  new Milestone(tangle, coordinator, Snapshot.initialSnapshot.clone(), transactionValidator, testnet, messageQ);
-        connectionManager = new NettyConnectionManager(configuration);
+        milestone = new Milestone(tangle, coordinator, Snapshot.initialSnapshot.clone(), transactionValidator, testnet, messageQ);
+        neighborManager = new NeighborManager();
+        connectionManager = new NettyConnectionManager(configuration, neighborManager);
+        neighborConnectionManager = new NeighborConnectionManager(neighborManager, connectionManager);
         ledgerValidator = new LedgerValidator(tangle, milestone, transactionRequester, messageQ);
         tipsManager = new TipsManager(tangle, ledgerValidator, transactionValidator, tipsViewModel, milestone, maxTipSearchDepth, messageQ);
     }
@@ -86,7 +85,7 @@ public class Iota {
         initializeTangle();
         tangle.init();
 
-        if (configuration.booling(Configuration.DefaultConfSettings.RESCAN_DB)){
+        if (configuration.booling(Configuration.DefaultConfSettings.RESCAN_DB)) {
             rescan_db();
         }
         boolean revalidate = configuration.booling(Configuration.DefaultConfSettings.REVALIDATE);
@@ -101,6 +100,9 @@ public class Iota {
         tipsManager.init();
         transactionRequester.init(configuration.doubling(Configuration.DefaultConfSettings.P_REMOVE_REQUEST.name()));
         connectionManager.start();
+
+        neighborConnectionManager.loadNeighbors(configuration.string(Configuration.DefaultConfSettings.NEIGHBORS));
+        neighborConnectionManager.start();
     }
 
     private void rescan_db() throws Exception {
@@ -164,6 +166,7 @@ public class Iota {
         milestone.shutDown();
         tipsManager.shutdown();
         connectionManager.shutdown();
+        neighborConnectionManager.shutdown();
         transactionValidator.shutdown();
         tangle.shutdown();
     }

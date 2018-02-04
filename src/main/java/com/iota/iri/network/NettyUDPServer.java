@@ -8,10 +8,15 @@ import io.netty.channel.epoll.EpollDatagramChannel;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.DatagramChannel;
+import io.netty.channel.socket.DatagramPacket;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioDatagramChannel;
+import io.netty.handler.codec.MessageToMessageDecoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.net.InetSocketAddress;
+import java.util.List;
 
 /**
  * @author Andreas C. Osowski
@@ -24,15 +29,17 @@ public class NettyUDPServer {
 
     private final int UDP_PORT;
     private final String LISTEN_HOST;
-    private final NettyProtocol protocol;
+    private final IOTAProtocol protocol;
+    private final NeighborManager neighborManager;
 
     private Bootstrap bootstrap;
     private ChannelFuture bindFuture;
     private EventLoopGroup eventGroup;
 
-    public NettyUDPServer(final Configuration configuration, final NettyProtocol protocol) {
+    public NettyUDPServer(Configuration configuration, IOTAProtocol protocol, NeighborManager neighborManager) {
         this.configuration = configuration;
         this.protocol = protocol;
+        this.neighborManager = neighborManager;
 
         UDP_PORT = configuration.integer(Configuration.DefaultConfSettings.UDP_RECEIVER_PORT);
         LISTEN_HOST = configuration.string(Configuration.DefaultConfSettings.LISTEN_HOST);
@@ -59,7 +66,8 @@ public class NettyUDPServer {
             @Override
             protected void initChannel(DatagramChannel ch) throws Exception {
                 LOG.info("Accepted new UDP connection: " + ch);
-                ch.pipeline().addLast(protocol.getServerChannelHandlers());
+
+                ch.pipeline().addLast(new NeighborFilter(neighborManager));
             }
         });
 
@@ -82,5 +90,26 @@ public class NettyUDPServer {
         }
 
         LOG.info("Successfully shut down Netty UDP server.");
+    }
+
+
+    @ChannelHandler.Sharable
+    static class NeighborFilter extends ChannelInboundHandlerAdapter {
+        private final NeighborManager neighborManager;
+
+        public NeighborFilter(NeighborManager neighborManager) {
+            this.neighborManager = neighborManager;
+        }
+
+
+        @Override
+        public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+            if(msg instanceof DatagramPacket) {
+                System.err.println(msg);
+                if (neighborManager.getNeighborForAddress(Protocol.UDP, (InetSocketAddress) ((DatagramPacket) msg).sender()).isPresent()) {
+                    ctx.fireChannelRead(msg);
+                }
+            }
+        }
     }
 }

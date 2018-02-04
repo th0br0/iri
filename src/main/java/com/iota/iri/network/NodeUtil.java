@@ -16,8 +16,26 @@ public class NodeUtil {
         return THREAD_FACTORY_BUILDER.setNameFormat(name + " Thread %d").build();
     }
 
+    public static Neighbor neighborFromURI(URI uri) {
+        if (!isUriValid(uri)) {
+            throw new RuntimeException("Invalid Neighbor URI provided.");
+        }
 
-    public static boolean isUriValid(final URI uri) {
+        Protocol proto = null;
+        switch (uri.getScheme()) {
+            case "tcp":
+                proto = Protocol.TCP;
+                break;
+            case "udp":
+                proto = Protocol.UDP;
+                break;
+        }
+
+        return new Neighbor(proto, uri.getHost(), uri.getPort());
+    }
+
+
+    public static boolean isUriValid(URI uri) {
         if (uri != null) {
             if (uri.getScheme().equals("tcp") || uri.getScheme().equals("udp")) {
                 if ((new InetSocketAddress(uri.getHost(), uri.getPort()).getAddress() != null)) {

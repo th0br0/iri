@@ -2,10 +2,7 @@ package com.iota.iri.network;
 
 import com.iota.iri.conf.Configuration;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.EventLoopGroup;
+import io.netty.channel.*;
 import io.netty.channel.epoll.Epoll;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.epoll.EpollSocketChannel;
@@ -15,23 +12,26 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.SocketAddress;
-
 public class NettyUDPClient {
 
     private static final Logger LOG = LoggerFactory.getLogger(NettyUDPClient.class);
     private final Configuration config;
 
     private final int UDP_CLIENT_THREADS = 2;
-    private final NettyProtocol protocol;
+    private final IOTAProtocol protocol;
+    private final String LISTEN_HOST;
+    private final int UDP_PORT;
 
     private Bootstrap bootstrap;
     private ChannelFuture bindFuture;
     private EventLoopGroup eventGroup;
 
-    public NettyUDPClient(Configuration config, NettyProtocol protocol) {
+    public NettyUDPClient(Configuration config, IOTAProtocol protocol) {
         this.config = config;
         this.protocol = protocol;
+
+        UDP_PORT = config.integer(Configuration.DefaultConfSettings.UDP_RECEIVER_PORT);
+        LISTEN_HOST = config.string(Configuration.DefaultConfSettings.LISTEN_HOST);
     }
 
     public void init() {
@@ -50,6 +50,7 @@ public class NettyUDPClient {
             bootstrap.group(eventGroup).channel(NioSocketChannel.class);
         }
 
+        bootstrap.localAddress(LISTEN_HOST, UDP_PORT);
         bootstrap.option(ChannelOption.SO_BROADCAST, true);
 
         bootstrap.handler(new ChannelInitializer<SocketChannel>() {
@@ -57,10 +58,11 @@ public class NettyUDPClient {
             public void initChannel(SocketChannel channel) throws Exception {
                 LOG.info("New UDP upstream connection. " + channel);
                 channel.pipeline().addLast(protocol.getClientChannelHandlers());
+
             }
         });
 
-        bindFuture = bootstrap.bind(0).syncUninterruptibly();
+
     }
 
     Bootstrap getBootstrap() {
@@ -86,11 +88,11 @@ public class NettyUDPClient {
         LOG.info("Successful shutdown (took {} ms).", (end - start));
     }
 
-    public ChannelFuture connect(SocketAddress serverSocketAddress) {
+    public ChannelFuture connect() {
         if (bootstrap == null) {
             throw new RuntimeException("Client has not been initialized yet.");
         }
 
-        return bootstrap.connect(serverSocketAddress);
+        return bootstrap.bind(0).syncUninterruptibly();
     }
 }

@@ -5,6 +5,7 @@ import com.google.common.cache.CacheBuilder;
 import com.iota.iri.TransactionValidator;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.MessageToMessageDecoder;
 
 import java.nio.ByteBuffer;
@@ -13,43 +14,41 @@ import java.util.List;
 /**
  * @author Andreas C. Osowski
  */
-public class IOTAProtocol implements NettyProtocol {
+public class IOTAProtocol {
     private final double P_DROP_REQUEST;
     private final IOTAMessage.IOTAMessageEncoder messageEncoder;
     private final MessageVerifier messageVerifier;
     private final TransactionCacher transactionCacher;
 
-    public IOTAProtocol(double pDropRequest, int MWM, long cacheSize) {
-        this.P_DROP_REQUEST = pDropRequest;
+    public IOTAProtocol(NeighborManager neighborManager, double pDropRequest, int MWM, long cacheSize) {
+        P_DROP_REQUEST = pDropRequest;
         messageEncoder = new IOTAMessage.IOTAMessageEncoder();
         transactionCacher = new TransactionCacher(cacheSize);
         messageVerifier = new MessageVerifier(MWM);
     }
 
-    @Override
     public ChannelHandler[] getServerChannelHandlers() {
         return new ChannelHandler[]{
-                messageEncoder,
                 new IOTAMessage.IOTAMessageDecoder(P_DROP_REQUEST),
-                transactionCacher,
+                //transactionCacher,
                 messageVerifier,
-                // serverHandler
+                new IOTAServerHandler()
         };
     }
 
-    @Override
     public ChannelHandler[] getClientChannelHandlers() {
         return new ChannelHandler[]{
                 messageEncoder,
-                new IOTAMessage.IOTAMessageDecoder(P_DROP_REQUEST),
-                transactionCacher,
-                messageVerifier,
+                // Client doesn't receive.
+                // new IOTAMessage.IOTAMessageDecoder(P_DROP_REQUEST),
+                // transactionCacher,
+                // messageVerifier,
                 // clientHandler
         };
     }
 
     /**
-     * Prevents processing of a transaction too offten.
+     * Prevents processing of a transaction too often.
      */
     @ChannelHandler.Sharable
     class TransactionCacher extends MessageToMessageDecoder<IOTAMessage> {

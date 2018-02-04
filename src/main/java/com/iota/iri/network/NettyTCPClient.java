@@ -2,10 +2,8 @@ package com.iota.iri.network;
 
 import com.iota.iri.conf.Configuration;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.EventLoopGroup;
+import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.channel.*;
 import io.netty.channel.epoll.Epoll;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.epoll.EpollSocketChannel;
@@ -16,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.SocketAddress;
+import java.util.Optional;
 
 public class NettyTCPClient {
 
@@ -23,14 +22,19 @@ public class NettyTCPClient {
     private final Configuration config;
 
     private final int TCP_CLIENT_THREADS = 2;
-    private final NettyProtocol protocol;
+    private final IOTAProtocol protocol;
+    private final int TCP_PORT;
+    private final String LISTEN_HOST;
 
     private Bootstrap bootstrap;
     private EventLoopGroup eventGroup;
 
-    public NettyTCPClient(Configuration config, NettyProtocol protocol) {
+    public NettyTCPClient(Configuration config, IOTAProtocol protocol) {
         this.config = config;
         this.protocol = protocol;
+
+        TCP_PORT = config.integer(Configuration.DefaultConfSettings.TCP_RECEIVER_PORT);
+        LISTEN_HOST = config.string(Configuration.DefaultConfSettings.LISTEN_HOST);
     }
 
     public void init() {
@@ -53,14 +57,15 @@ public class NettyTCPClient {
         bootstrap.option(ChannelOption.SO_KEEPALIVE, true);
         bootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 15 * 1000);
 
-        bootstrap.option(ChannelOption.SO_SNDBUF, INode.TRANSACTION_PACKET_SIZE);
-        bootstrap.option(ChannelOption.SO_RCVBUF, INode.TRANSACTION_PACKET_SIZE);
+        bootstrap.option(ChannelOption.SO_SNDBUF, 2 * INode.TRANSACTION_PACKET_SIZE);
+        bootstrap.option(ChannelOption.SO_RCVBUF, 2 * INode.TRANSACTION_PACKET_SIZE);
 
         bootstrap.handler(new ChannelInitializer<SocketChannel>() {
             @Override
-            public void initChannel(SocketChannel channel) throws Exception {
-                LOG.info("New TCP upstream connection. " + channel);
-                channel.pipeline().addLast(protocol.getClientChannelHandlers());
+            public void initChannel(SocketChannel ch) {
+                LOG.info("New TCP upstream connection. " + ch);
+
+                ch.pipeline().addLast(protocol.getClientChannelHandlers());
             }
         });
     }
