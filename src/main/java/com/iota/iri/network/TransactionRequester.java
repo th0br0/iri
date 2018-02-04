@@ -15,8 +15,8 @@ import java.util.*;
  * Created by paul on 3/27/17.
  */
 public class TransactionRequester {
+    private static final Logger LOG = LoggerFactory.getLogger(TransactionRequester.class);
 
-    private static final Logger log = LoggerFactory.getLogger(TransactionRequester.class);
     private final MessageQ messageQ;
     private final Set<Hash> milestoneTransactionsToRequest = new LinkedHashSet<>();
     private final Set<Hash> transactionsToRequest = new LinkedHashSet<>();
@@ -32,10 +32,12 @@ public class TransactionRequester {
 
     private final Object syncObj = new Object();
     private final Tangle tangle;
+    private final double P_SELECT_MILESTONE;
 
-    public TransactionRequester(Tangle tangle, MessageQ messageQ) {
+    public TransactionRequester(Tangle tangle, MessageQ messageQ, double pSelectMilestone) {
         this.tangle = tangle;
         this.messageQ = messageQ;
+        this.P_SELECT_MILESTONE = pSelectMilestone;
     }
 
     public void init(double p_REMOVE_REQUEST) {
@@ -65,6 +67,7 @@ public class TransactionRequester {
     }
 
     public void requestTransaction(Hash hash, boolean milestone) throws Exception {
+        LOG.trace("Requesting transaction: {}", hash);
         if (!hash.equals(Hash.NULL_HASH) && !TransactionViewModel.exists(tangle, hash)) {
             synchronized (syncObj) {
                 if(milestone) {
@@ -84,11 +87,11 @@ public class TransactionRequester {
     }
 
 
-    public Hash transactionToRequest(boolean milestone) throws Exception {
+    public Hash transactionToRequest() throws Exception {
         final long beginningTime = System.currentTimeMillis();
         Hash hash = null;
         Set<Hash> requestSet;
-        if(milestone) {
+        if(random.nextDouble() < P_SELECT_MILESTONE) {
              requestSet = milestoneTransactionsToRequest;
              if(requestSet.size() == 0) {
                  requestSet = transactionsToRequest;
@@ -105,7 +108,7 @@ public class TransactionRequester {
                 hash = iterator.next();
                 iterator.remove();
                 if (TransactionViewModel.exists(tangle, hash)) {
-                    log.info("Removed existing tx from request list: " + hash);
+                    LOG.info("Removed existing tx from request list: " + hash);
                     messageQ.publish("rtl %s", hash);
                 } else {
                     if (!transactionsToRequestIsFull()) {
@@ -125,7 +128,7 @@ public class TransactionRequester {
         long now = System.currentTimeMillis();
         if ((now - lastTime) > 10000L) {
             lastTime = now;
-            //log.info("Transactions to request = {}", numberOfTransactionsToRequest() + " / " + TransactionViewModel.getNumberOfStoredTransactions() + " (" + (now - beginningTime) + " ms ). " );
+            //LOG.info("Transactions to request = {}", numberOfTransactionsToRequest() + " / " + TransactionViewModel.getNumberOfStoredTransactions() + " (" + (now - beginningTime) + " ms ). " );
         }
         return hash;
     }

@@ -1,6 +1,5 @@
 package com.iota.iri.network;
 
-import com.iota.iri.conf.Configuration;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.epoll.Epoll;
@@ -9,24 +8,19 @@ import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.DatagramChannel;
 import io.netty.channel.socket.DatagramPacket;
-import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioDatagramChannel;
-import io.netty.handler.codec.MessageToMessageDecoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
-import java.util.List;
 
 /**
  * @author Andreas C. Osowski
  */
 public class NettyUDPServer {
     private static final Logger LOG = LoggerFactory.getLogger(NettyUDPServer.class);
+
     private static final int NUM_UDP_SERVER_THREAD = 2;
-
-    private final Configuration configuration;
-
     private final int UDP_PORT;
     private final String LISTEN_HOST;
     private final IOTAProtocol protocol;
@@ -36,13 +30,12 @@ public class NettyUDPServer {
     private ChannelFuture bindFuture;
     private EventLoopGroup eventGroup;
 
-    public NettyUDPServer(Configuration configuration, IOTAProtocol protocol, NeighborManager neighborManager) {
-        this.configuration = configuration;
+    public NettyUDPServer(String listenHost, int port, IOTAProtocol protocol, NeighborManager neighborManager) {
         this.protocol = protocol;
         this.neighborManager = neighborManager;
 
-        UDP_PORT = configuration.integer(Configuration.DefaultConfSettings.UDP_RECEIVER_PORT);
-        LISTEN_HOST = configuration.string(Configuration.DefaultConfSettings.LISTEN_HOST);
+        LISTEN_HOST = listenHost;
+        UDP_PORT = port;
     }
 
     public void init() {
@@ -100,7 +93,6 @@ public class NettyUDPServer {
         public NeighborFilter(NeighborManager neighborManager) {
             this.neighborManager = neighborManager;
         }
-
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {

@@ -4,9 +4,8 @@ import com.iota.iri.conf.Configuration;
 import com.iota.iri.controllers.*;
 import com.iota.iri.hash.SpongeFactory;
 import com.iota.iri.model.Hash;
-import com.iota.iri.network.NeighborConnectionManager;
-import com.iota.iri.network.NeighborManager;
-import com.iota.iri.network.NettyConnectionManager;
+import com.iota.iri.network.IOTANetwork;
+import com.iota.iri.network.TransactionRequestResponder;
 import com.iota.iri.network.TransactionRequester;
 import com.iota.iri.service.TipsManager;
 import com.iota.iri.storage.*;
@@ -33,8 +32,6 @@ public class Iota {
     public final Tangle tangle;
     public final TransactionValidator transactionValidator;
     public final TipsManager tipsManager;
-    public final TransactionRequester transactionRequester;
-    public final NettyConnectionManager connectionManager;
     public final Configuration configuration;
     public final Hash coordinator;
     public final TipsViewModel tipsViewModel;
@@ -44,8 +41,9 @@ public class Iota {
     public final int udpPort;
     public final int tcpPort;
     public final int maxTipSearchDepth;
-    private final NeighborManager neighborManager;
-    private final NeighborConnectionManager neighborConnectionManager;
+    public final IOTANetwork network;
+    public final TransactionRequester transactionRequester;
+    public final TransactionRequestResponder transactionRequestResponder;
 
     public Iota(Configuration configuration) {
         this.configuration = configuration;
@@ -71,12 +69,13 @@ public class Iota {
                 configuration.booling(Configuration.DefaultConfSettings.ZMQ_ENABLED)
         );
         tipsViewModel = new TipsViewModel();
-        transactionRequester = new TransactionRequester(tangle, messageQ);
+        transactionRequester = new TransactionRequester(tangle, messageQ, configuration.doubling(Configuration.DefaultConfSettings.P_SELECT_MILESTONE_CHILD.name()));
         transactionValidator = new TransactionValidator(tangle, tipsViewModel, transactionRequester, messageQ);
+        network = new IOTANetwork(this);
         milestone = new Milestone(tangle, coordinator, Snapshot.initialSnapshot.clone(), transactionValidator, testnet, messageQ);
-        neighborManager = new NeighborManager();
-        connectionManager = new NettyConnectionManager(configuration, neighborManager);
-        neighborConnectionManager = new NeighborConnectionManager(neighborManager, connectionManager);
+        transactionRequestResponder = new TransactionRequestResponder(network.getNeighborConnectionManager(), network.getConnectionManager().getProtocol().getTransactionRequestHandler(), tangle,
+                tipsViewModel, milestone, transactionRequester,
+                configuration.doubling(Configuration.DefaultConfSettings.P_SEND_MILESTONE.name()));
         ledgerValidator = new LedgerValidator(tangle, milestone, transactionRequester, messageQ);
         tipsManager = new TipsManager(tangle, ledgerValidator, transactionValidator, tipsViewModel, milestone, maxTipSearchDepth, messageQ);
     }
@@ -97,12 +96,11 @@ public class Iota {
         }
         milestone.init(SpongeFactory.Mode.CURLP27, ledgerValidator, revalidate);
         transactionValidator.init(testnet, configuration.integer(Configuration.DefaultConfSettings.MAINNET_MWM), configuration.integer(Configuration.DefaultConfSettings.TESTNET_MWM));
-        tipsManager.init();
         transactionRequester.init(configuration.doubling(Configuration.DefaultConfSettings.P_REMOVE_REQUEST.name()));
-        connectionManager.start();
+        tipsManager.init();
 
-        neighborConnectionManager.loadNeighbors(configuration.string(Configuration.DefaultConfSettings.NEIGHBORS));
-        neighborConnectionManager.start();
+        network.startAsync().awaitRunning();
+        transactionRequestResponder.startAsync().awaitRunning();
     }
 
     private void rescan_db() throws Exception {
@@ -163,10 +161,10 @@ public class Iota {
     }
 
     public void shutdown() throws Exception {
+        transactionRequestResponder.stopAsync().awaitTerminated();
+        network.stopAsync().awaitTerminated();
         milestone.shutDown();
         tipsManager.shutdown();
-        connectionManager.shutdown();
-        neighborConnectionManager.shutdown();
         transactionValidator.shutdown();
         tangle.shutdown();
     }

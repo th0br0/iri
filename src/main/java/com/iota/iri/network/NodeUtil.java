@@ -1,9 +1,12 @@
 package com.iota.iri.network;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.iota.iri.model.Hash;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ThreadFactory;
 
 /**
@@ -45,5 +48,14 @@ public class NodeUtil {
             return false;
         }
         return false;
+    }
+
+    public static <O> ConcurrentSkipListSet<Pair<Hash, O>> hashWeightedQueue() {
+        return new ConcurrentSkipListSet<>((transaction1, transaction2) -> {
+            Hash tx1 = transaction1.getLeft();
+            Hash tx2 = transaction2.getLeft();
+
+            return Integer.compare(tx1.trailingZeros(), tx2.trailingZeros());
+        });
     }
 }

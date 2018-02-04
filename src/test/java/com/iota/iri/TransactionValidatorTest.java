@@ -40,7 +40,7 @@ public class TransactionValidatorTest {
     tangle.init();
     TipsViewModel tipsViewModel = new TipsViewModel();
     MessageQ messageQ = new MessageQ(0, "", 0, false);
-    TransactionRequester txRequester = new TransactionRequester(tangle, messageQ);
+    TransactionRequester txRequester = new TransactionRequester(tangle, messageQ, 0);
     txValidator = new TransactionValidator(tangle, tipsViewModel, txRequester, messageQ);
     txValidator.init(false, MAINNET_MWM, TESTNET_MWM);
   }

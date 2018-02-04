@@ -459,7 +459,7 @@ public class API {
 
         return CheckConsistency.create(state,info);
     }
-    
+
     private double getParameterAsDouble(Map<String, Object> request, String paramName) throws ValidationException {
         validateParamExists(request, paramName);
         final double result;
@@ -648,8 +648,7 @@ public class API {
     }
 
     private AbstractResponse getNeighborsStatement() {
-        // FIXME
-        return AbstractResponse.createEmptyResponse(); //GetNeighborsResponse.create(instance.node.getNeighbors());
+        return GetNeighborsResponse.create(instance.network.getNeighborManager().getNeighbors());
     }
 
     private AbstractResponse getNewInclusionStateStatement(final List<String> trans, final List<String> tps) throws Exception {
@@ -853,8 +852,7 @@ public class API {
         for (final TransactionViewModel transactionViewModel : elements) {
             //push first in line to broadcast
             transactionViewModel.weightMagnitude = Curl.HASH_LENGTH;
-            // FIXME
-            //instance.node.broadcast(transactionViewModel);
+            instance.network.broadcast(transactionViewModel);
         }
     }
 
@@ -992,20 +990,17 @@ public class API {
 
     private AbstractResponse addNeighborsStatement(final List<String> uris) {
         int numberOfAddedNeighbors = 0;
-        //try {
-            for (final String uriString : uris) {
-                log.info("Adding neighbor: " + uriString);
-                //FIXME
-                /*
-                final Neighbor neighbor = instance.node.newNeighbor(new URI(uriString), true);
-                if (!instance.node.getNeighbors().contains(neighbor)) {
-                    instance.node.getNeighbors().add(neighbor);
+        for (final String uriString : uris) {
+            log.info("Adding neighbor: " + uriString);
+
+            try {
+                if(instance.network.getNeighborManager().addNeighbor(NodeUtil.neighborFromURI(new URI(uriString)))) {
                     numberOfAddedNeighbors++;
-                }*/
+                }
+            } catch (URISyntaxException e) {
+                e.printStackTrace();
             }
-        /*} catch (URISyntaxException|RuntimeException e) {
-            return ErrorResponse.create("Invalid uri scheme: " + e.getLocalizedMessage());
-        }*/
+        }
         return AddedNeighborsResponse.create(numberOfAddedNeighbors);
     }
 

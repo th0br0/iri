@@ -1,9 +1,9 @@
 package com.iota.iri.network;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import com.iota.iri.TransactionValidator;
-import io.netty.channel.ChannelFutureListener;
+import com.iota.iri.network.handlers.RequestDropper;
+import com.iota.iri.network.handlers.TransactionCacher;
+import com.iota.iri.network.handlers.TransactionRequestHandler;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.FixedLengthFrameDecoder;
@@ -11,41 +11,48 @@ import io.netty.handler.codec.MessageToMessageDecoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.ByteBuffer;
 import java.util.List;
 
 /**
  * @author Andreas C. Osowski
  */
 public class IOTAProtocol {
-    private final double P_DROP_REQUEST;
+    private final RequestDropper requestDropper;
     private final IOTAMessage.IOTAMessageEncoder messageEncoder;
     private final MessageVerifier messageVerifier;
     private final TransactionCacher transactionCacher;
+    private final TransactionRequestHandler transactionRequestHandler;
+    private final IOTAServerHandler serverHandler;
 
-    public IOTAProtocol(NeighborManager neighborManager, double pDropRequest, int MWM, long cacheSize) {
-        P_DROP_REQUEST = pDropRequest;
+    public IOTAProtocol(double pDropRequest, double pReplyRandomRequest, int MWM, long cacheSize) {
+        requestDropper = new RequestDropper(pDropRequest);
         messageEncoder = new IOTAMessage.IOTAMessageEncoder();
         transactionCacher = new TransactionCacher(cacheSize);
+        transactionRequestHandler = new TransactionRequestHandler(cacheSize, pReplyRandomRequest);
         messageVerifier = new MessageVerifier(MWM);
+        serverHandler = new IOTAServerHandler();
+    }
+
+    public TransactionRequestHandler getTransactionRequestHandler() {
+        return transactionRequestHandler;
     }
 
     public ChannelHandler[] getServerChannelHandlers(Protocol protocol) {
         return new ChannelHandler[]{
                 // FIXME discard CRC32 in old IRI
                 new FixedLengthFrameDecoder(protocol == Protocol.UDP ? IOTAMessage.MESSAGE_SIZE : (IOTAMessage.MESSAGE_SIZE + 16)),
-                // FIXME RequestDropper
+                requestDropper,
                 new IOTAMessage.IOTAMessageDecoder(),
+                transactionRequestHandler,
                 transactionCacher,
                 messageVerifier,
-                new IOTAServerHandler()
+                serverHandler
         };
     }
 
     public ChannelHandler[] getClientChannelHandlers() {
         return new ChannelHandler[]{
                 messageEncoder,
-
                 // Client doesn't receive.
                 // new IOTAMessage.IOTAMessageDecoder(P_DROP_REQUEST),
                 // transactionCacher,
@@ -54,34 +61,9 @@ public class IOTAProtocol {
         };
     }
 
-    /**
-     * Prevents processing of a transaction too often.
-     */
-    @ChannelHandler.Sharable
-    static class TransactionCacher extends MessageToMessageDecoder<IOTAMessage> {
-        // Concurrent by default.
-        private final Cache<ByteBuffer, Integer> cache;
-
-        public TransactionCacher(long cacheSize) {
-            this.cache = CacheBuilder.newBuilder()
-                    .maximumSize(cacheSize).build();
-        }
-
-        void process(IOTAMessage.TransactionMessage msg, List<Object> list) {
-            // FIXME runtime overhead of trits->bytes conversion
-            ByteBuffer hashBytes = ByteBuffer.wrap(msg.getTransaction().getHash().bytes());
-            if (cache.getIfPresent(hashBytes) == null) {
-                cache.put(hashBytes, 1);
-                list.add(msg);
-            } else {
-                return;
-            }
-        }
-
-        @Override
-        protected void decode(ChannelHandlerContext channelHandlerContext, IOTAMessage iotaMessage, List<Object> list) throws Exception {
-            process((IOTAMessage.TransactionMessage) iotaMessage, list);
-        }
+    // NOT THREAD SAFE
+    public void setTransactionStorer(TransactionStorer transactionStorer) {
+        serverHandler.setTransactionStorer(transactionStorer);
     }
 
     @ChannelHandler.Sharable

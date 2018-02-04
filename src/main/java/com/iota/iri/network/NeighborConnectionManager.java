@@ -1,5 +1,6 @@
 package com.iota.iri.network;
 
+import com.google.common.util.concurrent.AbstractService;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -17,16 +18,17 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
-public class NeighborConnectionManager {
+public class NeighborConnectionManager extends AbstractService {
     private static final Logger LOG = LoggerFactory.getLogger(NeighborConnectionManager.class);
 
     private final NeighborManager neighborManager;
     private final NettyConnectionManager connectionManager;
 
     private final ConcurrentHashMap<Neighbor, IOTAClient> neighborConnections;
-    private final AtomicBoolean isRunning = new AtomicBoolean(false);
     private EventLoopGroup eventGroup;
+
     private DnsNameResolver resolver;
     private ScheduledFuture<?> neighborCheckerFuture;
 
@@ -37,26 +39,20 @@ public class NeighborConnectionManager {
         neighborConnections = new ConcurrentHashMap<>();
     }
 
-    public void start() {
-        if (isRunning.get()) {
-            LOG.warn("Already started.");
-            return;
-        }
-        isRunning.set(true);
-
-        eventGroup = new NioEventLoopGroup(4, NodeUtil.getNamedThreadFactory("NeighborConnectionManager"));
+    @Override
+    protected void doStart() {
+        eventGroup = new NioEventLoopGroup(2, NodeUtil.getNamedThreadFactory("NeighborConnectionManager"));
         resolver = new DnsNameResolverBuilder(eventGroup.next())
                 .channelType(NioDatagramChannel.class)
                 .ttl(300, 300).build();
 
-        neighborCheckerFuture = eventGroup.scheduleAtFixedRate(this::checkNeighborConnections, 0, 1, TimeUnit.MINUTES);
+        neighborCheckerFuture = eventGroup.next().scheduleAtFixedRate(this::checkNeighborConnections, 0, 1, TimeUnit.MINUTES);
+        notifyStarted();
+
     }
 
-    public void shutdown() {
-        if (!isRunning.get()) {
-            LOG.warn("Tried to stop but wasn't started.");
-            return;
-        }
+    @Override
+    protected void doStop() {
         LOG.info("Starting shutdown.");
 
         neighborCheckerFuture.cancel(true);
@@ -75,16 +71,32 @@ public class NeighborConnectionManager {
         eventGroup.shutdownGracefully().syncUninterruptibly();
 
         LOG.info("Shutdown completed.");
+        notifyStopped();
     }
 
+    public List<IOTAClient> getActiveClients() {
+        return neighborConnections.values().stream().filter((c) -> !c.isClosed()).collect(Collectors.toList());
+    }
+
+    public Optional<IOTAClient> getClientForNeighbor(Neighbor n) {
+        IOTAClient c = neighborConnections.get(n);
+        if(c == null || c.isClosed()) {
+            return Optional.empty();
+        } else {
+            return Optional.of(c);
+        }
+    }
+
+
+
     protected void checkNeighborConnections() {
-        Set<Neighbor> neighbors = neighborManager.getNeighbors();
+        List<Neighbor> neighbors = neighborManager.getNeighbors();
         LOG.info("Checking neighbor connections.");
 
         for (Neighbor neighbor : neighbors) {
             IOTAClient client = neighborConnections.get(neighbor);
 
-            if(client != null && client.isClosed()) {
+            if (client != null && client.isClosed()) {
                 client = null;
             }
 
@@ -100,7 +112,7 @@ public class NeighborConnectionManager {
 
             neighbor.getAddress().set(address);
 
-            if(client != null) {
+            if (client != null) {
                 boolean dnsChanged = !client.getRemoteAddress().equals(address);
 
                 if (!dnsChanged) {
@@ -113,6 +125,7 @@ public class NeighborConnectionManager {
                 neighborConnections.put(neighbor, connectionManager.connect(neighbor));
             } catch (Exception e) {
                 LOG.info("Failed to connect to {}: {}", neighbor, e.getMessage());
+                neighborConnections.put(neighbor, null);
             }
         }
     }

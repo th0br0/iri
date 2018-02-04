@@ -4,9 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -28,8 +26,8 @@ public class NeighborManager {
                 && n.getAddress().get().equals(address.getAddress())).findFirst();
     }
 
-    public Set<Neighbor> getNeighbors() {
-        return new HashSet(neighbors.keySet());
+    public List<Neighbor> getNeighbors() {
+        return new ArrayList<>(neighbors.keySet());
     }
 
     public boolean addNeighbor(Neighbor neighbor) {

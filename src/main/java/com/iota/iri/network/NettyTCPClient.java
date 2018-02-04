@@ -1,6 +1,5 @@
 package com.iota.iri.network;
 
-import com.iota.iri.conf.Configuration;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
@@ -20,22 +19,15 @@ import java.net.SocketAddress;
 public class NettyTCPClient {
 
     private static final Logger LOG = LoggerFactory.getLogger(NettyTCPClient.class);
-    private final Configuration config;
 
     private final int TCP_CLIENT_THREADS = 2;
     private final IOTAProtocol protocol;
-    private final int TCP_PORT;
-    private final String LISTEN_HOST;
 
     private Bootstrap bootstrap;
     private EventLoopGroup eventGroup;
 
-    public NettyTCPClient(Configuration config, IOTAProtocol protocol) {
-        this.config = config;
+    public NettyTCPClient(IOTAProtocol protocol) {
         this.protocol = protocol;
-
-        TCP_PORT = config.integer(Configuration.DefaultConfSettings.TCP_RECEIVER_PORT);
-        LISTEN_HOST = config.string(Configuration.DefaultConfSettings.LISTEN_HOST);
     }
 
     public void init() {

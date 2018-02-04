@@ -1,8 +1,10 @@
 package com.iota.iri.network;
 
-import com.iota.iri.conf.Configuration;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.*;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.EventLoopGroup;
 import io.netty.channel.epoll.Epoll;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.epoll.EpollSocketChannel;
@@ -13,9 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class NettyUDPClient {
-
     private static final Logger LOG = LoggerFactory.getLogger(NettyUDPClient.class);
-    private final Configuration config;
 
     private final int UDP_CLIENT_THREADS = 2;
     private final IOTAProtocol protocol;
@@ -26,12 +26,11 @@ public class NettyUDPClient {
     private ChannelFuture bindFuture;
     private EventLoopGroup eventGroup;
 
-    public NettyUDPClient(Configuration config, IOTAProtocol protocol) {
-        this.config = config;
+    public NettyUDPClient(String listenHost, int port, IOTAProtocol protocol) {
         this.protocol = protocol;
 
-        UDP_PORT = config.integer(Configuration.DefaultConfSettings.UDP_RECEIVER_PORT);
-        LISTEN_HOST = config.string(Configuration.DefaultConfSettings.LISTEN_HOST);
+        UDP_PORT = port;
+        LISTEN_HOST = listenHost;
     }
 
     public void init() {
@@ -61,8 +60,6 @@ public class NettyUDPClient {
 
             }
         });
-
-
     }
 
     Bootstrap getBootstrap() {

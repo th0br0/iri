@@ -21,7 +21,7 @@ import java.util.List;
 /**
  * @author Andreas C. Osowski
  */
-abstract class IOTAMessage {
+public abstract class IOTAMessage {
     static final int MESSAGE_SIZE = 1650;
     static final int REQ_HASH_SIZE = 46;
 
@@ -31,7 +31,6 @@ abstract class IOTAMessage {
 
 
     static class IOTAMessageDecoder extends ByteToMessageDecoder {
-        private static final SecureRandom random = new SecureRandom();
         private byte[] byteBuf = new byte[MESSAGE_SIZE];
         private ByteBuf buffer = Unpooled.wrappedBuffer(byteBuf);
 
@@ -50,6 +49,7 @@ abstract class IOTAMessage {
 
             TransactionMessage msg = new TransactionMessage();
             msg.readFrom(buffer);
+            msg.getTransaction().setArrivalTime(System.currentTimeMillis());
             list.add(msg);
         }
     }
@@ -75,7 +75,7 @@ abstract class IOTAMessage {
         }
     }
 
-    static class TransactionMessage extends IOTAMessage {
+    public static class TransactionMessage extends IOTAMessage {
         private TransactionViewModel transaction;
         private Hash reqHash;
 

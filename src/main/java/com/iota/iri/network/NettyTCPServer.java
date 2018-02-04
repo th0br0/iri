@@ -1,6 +1,5 @@
 package com.iota.iri.network;
 
-import com.iota.iri.conf.Configuration;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.*;
@@ -23,8 +22,6 @@ import java.util.Optional;
 public class NettyTCPServer {
     private static final Logger LOG = LoggerFactory.getLogger(NettyTCPServer.class);
 
-    private final Configuration config;
-
     private final int TCP_PORT;
     private final String LISTEN_HOST;
     private final IOTAProtocol protocol;
@@ -34,13 +31,12 @@ public class NettyTCPServer {
     private ChannelFuture bindFuture;
     private EventLoopGroup eventGroup;
 
-    public NettyTCPServer(Configuration config, IOTAProtocol protocol, NeighborManager neighborManager) {
-        this.config = config;
+    public NettyTCPServer(String listenHost, int port, IOTAProtocol protocol, NeighborManager neighborManager) {
         this.protocol = protocol;
         this.neighborManager = neighborManager;
 
-        TCP_PORT = config.integer(Configuration.DefaultConfSettings.TCP_RECEIVER_PORT);
-        LISTEN_HOST = config.string(Configuration.DefaultConfSettings.LISTEN_HOST);
+        TCP_PORT = port;
+        LISTEN_HOST = listenHost;
     }
 
     public void init() {

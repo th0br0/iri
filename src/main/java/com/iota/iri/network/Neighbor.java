@@ -3,6 +3,7 @@ package com.iota.iri.network;
 import io.netty.util.AttributeKey;
 
 import java.net.InetAddress;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class Neighbor {
@@ -37,6 +38,22 @@ public class Neighbor {
 
     public AtomicReference<InetAddress> getAddress() {
         return address;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Neighbor neighbor = (Neighbor) o;
+        return port == neighbor.port &&
+                protocol == neighbor.protocol &&
+                Objects.equals(host, neighbor.host);
+    }
+
+    @Override
+    public int hashCode() {
+
+        return Objects.hash(protocol, host, port);
     }
 
     @Override

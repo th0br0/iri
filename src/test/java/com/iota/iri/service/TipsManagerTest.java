@@ -51,7 +51,7 @@ public class TipsManagerTest {
         tangle.init();
         TipsViewModel tipsViewModel = new TipsViewModel();
         MessageQ messageQ = new MessageQ(0, null, 1, false);
-        TransactionRequester transactionRequester = new TransactionRequester(tangle, messageQ);
+        TransactionRequester transactionRequester = new TransactionRequester(tangle, messageQ,0);
         TransactionValidator transactionValidator = new TransactionValidator(tangle, tipsViewModel, transactionRequester, messageQ);
         Milestone milestone = new Milestone(tangle, Hash.NULL_HASH, Snapshot.initialSnapshot.clone(), transactionValidator, true, messageQ);
         LedgerValidator ledgerValidator = new LedgerValidator(tangle, milestone, transactionRequester, messageQ);
