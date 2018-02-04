@@ -61,11 +61,7 @@ public class NettyTCPClient {
         });
     }
 
-    Bootstrap getBootstrap() {
-        return bootstrap;
-    }
-
-    void shutdown() {
+    public void shutdown() {
         long start = System.currentTimeMillis();
 
         if (bootstrap != null) {

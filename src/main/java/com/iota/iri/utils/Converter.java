@@ -83,7 +83,8 @@ public class Converter {
         getTrits(bytes, 0, trits);
     }
 
-    public static void getTrits(final byte[] bytes, int offset, final int[] trits) {
+    public static void getTrits(final byte[] bytes, int startOffset, final int[] trits) {
+        int offset = startOffset;
         for (int i = 0; i < bytes.length && offset < trits.length; i++) {
             System.arraycopy(BYTE_TO_TRITS_MAPPINGS[bytes[i] < 0 ? (bytes[i] + BYTE_TO_TRITS_MAPPINGS.length) : bytes[i]], 0, trits, offset, trits.length - offset < NUMBER_OF_TRITS_IN_A_BYTE ? (trits.length - offset) : NUMBER_OF_TRITS_IN_A_BYTE);
             offset += NUMBER_OF_TRITS_IN_A_BYTE;

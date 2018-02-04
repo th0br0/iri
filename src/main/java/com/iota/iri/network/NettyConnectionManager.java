@@ -13,7 +13,6 @@ import java.io.IOException;
 public class NettyConnectionManager extends AbstractService {
     private final Logger LOG = LoggerFactory.getLogger(NettyConnectionManager.class);
     private final IOTAProtocol protocol;
-    private final NeighborManager neighborManager;
     private final IOTATCPClientFactory clientFactory;
 
     private final NettyTCPServer tcpServer;
@@ -38,7 +37,6 @@ public class NettyConnectionManager extends AbstractService {
         long cacheSize = 5000;
 
         this.protocol = new IOTAProtocol(dropTransaction, replyRandomRequest, MWM, cacheSize);
-        this.neighborManager = neighborManager;
 
         this.tcpServer = new NettyTCPServer(listenHost, tcpPort, protocol, neighborManager);
         this.tcpClient = new NettyTCPClient(protocol);
@@ -66,6 +64,7 @@ public class NettyConnectionManager extends AbstractService {
         tcpClient.init();
         udpServer.init();
         udpClient.init();
+        LOG.info("Started up.");
         notifyStarted();
     }
 
@@ -75,6 +74,7 @@ public class NettyConnectionManager extends AbstractService {
         tcpClient.shutdown();
         udpServer.shutdown();
         udpClient.shutdown();
+        LOG.info("Shutdown complete.");
         notifyStopped();
     }
 }

@@ -37,6 +37,7 @@ public class TipsRequester extends AbstractService {
     private void requestTip() {
         TransactionViewModel model;
         try {
+            LOG.info("Requesting random tip. Milestone: {}", milestone.latestMilestone);
             model = TransactionViewModel.fromHash(tangle, milestone.latestMilestone);
         } catch (Exception e) {
             LOG.debug("Failed to load latest milestone.");

@@ -24,20 +24,16 @@ import java.util.zip.CRC32;
  */
 public abstract class IOTAMessage {
     public final static int CRC32_LENGTH = 16;
-    static final int MESSAGE_SIZE = 1650;
-    static final int REQ_HASH_SIZE = 46;
+    public static final int MESSAGE_SIZE = 1650;
+    public static final int REQ_HASH_SIZE = 46;
 
-    abstract ByteBuf write(ByteBufAllocator allocator) throws Exception;
-
-    abstract void readFrom(ByteBuf buffer) throws Exception;
+    public abstract ByteBuf write(ByteBufAllocator allocator) throws Exception;
+    public abstract void readFrom(ByteBuf buffer) throws Exception;
 
 
     static class IOTAMessageDecoder extends ByteToMessageDecoder {
         private byte[] byteBuf = new byte[MESSAGE_SIZE];
         private ByteBuf buffer = Unpooled.wrappedBuffer(byteBuf);
-
-        public IOTAMessageDecoder() {
-        }
 
         @Override
         protected void decode(ChannelHandlerContext channelHandlerContext, ByteBuf input, List<Object> list) throws Exception {
@@ -118,7 +114,7 @@ public abstract class IOTAMessage {
         }
 
         @Override
-        ByteBuf write(ByteBufAllocator allocator) throws Exception {
+        public ByteBuf write(ByteBufAllocator allocator) throws Exception {
             final ByteBuf buffer = allocator.directBuffer(MESSAGE_SIZE);
 
             Converter.bytes(transaction.trits(), buffer, 0, TransactionViewModel.TRINARY_SIZE);
@@ -127,7 +123,7 @@ public abstract class IOTAMessage {
         }
 
         @Override
-        void readFrom(ByteBuf buffer) throws Exception {
+        public void readFrom(ByteBuf buffer) throws Exception {
             byte[] data = buffer.array();
             int[] txTrits = new int[TransactionViewModel.TRINARY_SIZE];
             int[] reqTrits = new int[Hash.SIZE_IN_TRITS];

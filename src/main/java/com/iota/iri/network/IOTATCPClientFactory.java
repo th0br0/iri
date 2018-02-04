@@ -80,11 +80,11 @@ public class IOTATCPClientFactory {
         }
     }
 
-    int getNumberOfActiveClients() {
+    public int getNumberOfActiveClients() {
         return clients.size();
     }
 
-    void destroyClient(Neighbor neighbor, IOTAClient client) {
+    public void destroyClient(Neighbor neighbor, IOTAClient client) {
         LOG.info("Destroying client: {}", client);
         clients.remove(neighbor, client);
     }

@@ -14,10 +14,12 @@ import org.slf4j.LoggerFactory;
 
 import java.net.InetAddress;
 import java.net.URI;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 public class NeighborConnectionManager extends AbstractService {
@@ -80,14 +82,12 @@ public class NeighborConnectionManager extends AbstractService {
 
     public Optional<IOTAClient> getClientForNeighbor(Neighbor n) {
         IOTAClient c = neighborConnections.get(n);
-        if(c == null || c.isClosed()) {
+        if (c == null || c.isClosed()) {
             return Optional.empty();
         } else {
             return Optional.of(c);
         }
     }
-
-
 
     protected void checkNeighborConnections() {
         List<Neighbor> neighbors = neighborManager.getNeighbors();

@@ -21,12 +21,7 @@ public class IOTAServerHandler extends SimpleChannelInboundHandler<IOTAMessage> 
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, IOTAMessage iotaMessage) throws Exception {
-        /*
-            We have received a new IOTA Message.
-         */
-
         IOTAMessage.TransactionMessage msg = (IOTAMessage.TransactionMessage) iotaMessage;
-        LOG.info("Channel read: {} req: {}", msg.getTransaction().getHash(), msg.getReqHash());
 
         TransactionViewModel model = msg.getTransaction();
         transactionStorer.store(ctx.channel().attr(Neighbor.KEY).get(), model);

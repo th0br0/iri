@@ -3,6 +3,7 @@ package com.iota.iri.network;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.iota.iri.model.Hash;
 import io.netty.buffer.ByteBuf;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.net.InetSocketAddress;
@@ -34,6 +35,8 @@ public class NodeUtil {
             case "udp":
                 proto = Protocol.UDP;
                 break;
+            default:
+                throw new NotImplementedException();
         }
 
         return new Neighbor(proto, uri.getHost(), uri.getPort());
