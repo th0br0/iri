@@ -6,8 +6,10 @@ import com.iota.iri.network.handlers.TransactionCacher;
 import com.iota.iri.network.handlers.TransactionRequestHandler;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.FixedLengthFrameDecoder;
 import io.netty.handler.codec.MessageToMessageDecoder;
+import io.netty.util.ReferenceCountUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,8 +45,8 @@ public class IOTAProtocol {
         return new ChannelHandler[]{
                 // FIXME discard CRC32 in old IRI
                 new FixedLengthFrameDecoder(protocol == Protocol.UDP ? IOTAMessage.MESSAGE_SIZE : (IOTAMessage.MESSAGE_SIZE + IOTAMessage.CRC32_LENGTH)),
-                requestDropper,
                 new IOTAMessage.IOTAMessageDecoder(),
+                requestDropper,
                 transactionRequestHandler,
                 transactionCacher,
                 messageVerifier,
@@ -69,24 +71,27 @@ public class IOTAProtocol {
     }
 
     @ChannelHandler.Sharable
-    static class MessageVerifier extends MessageToMessageDecoder<IOTAMessage> {
+    static class MessageVerifier extends SimpleChannelInboundHandler<IOTAMessage> {
         private static final Logger LOG = LoggerFactory.getLogger(MessageVerifier.class);
         private final int MWM;
 
         public MessageVerifier(int mwm) {
+            super(false);
             this.MWM = mwm;
         }
 
         @Override
-        protected void decode(ChannelHandlerContext channelHandlerContext, IOTAMessage iotaMessage, List<Object> list) throws Exception {
-            IOTAMessage.TransactionMessage txMsg = (IOTAMessage.TransactionMessage) iotaMessage;
+        protected void channelRead0(ChannelHandlerContext ctx, IOTAMessage msg) throws Exception {
+            IOTAMessage.TransactionMessage txMsg = (IOTAMessage.TransactionMessage) msg;
             try {
                 TransactionValidator.runValidation(txMsg.getTransaction(), MWM);
-                list.add(txMsg);
+                ctx.fireChannelRead(msg);
             } catch (Exception e) {
                 LOG.trace("Message failed validation: {}", e.getMessage());
                 // FIXME increase neighbor stats for invalid tx.
+                ReferenceCountUtil.release(msg);
             }
+
         }
     }
 }
