@@ -7,9 +7,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Comparator;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 public class TransactionBroadcaster extends AbstractService {
@@ -18,8 +18,9 @@ public class TransactionBroadcaster extends AbstractService {
     private final int MAX_QUEUE_SIZE;
     private final NeighborConnectionManager connectionManager;
     private final TransactionRequester transactionRequester;
+    private final Object syncObject = new Object();
 
-    private PriorityBlockingQueue<TransactionViewModel> broadcastQueue;
+    private ConcurrentSkipListSet<TransactionViewModel> broadcastQueue;
     private ExecutorService eventExecutor;
 
     public TransactionBroadcaster(NeighborConnectionManager connectionManager, TransactionRequester transactionRequester, int MAX_QUEUE_SIZE) {
@@ -32,7 +33,7 @@ public class TransactionBroadcaster extends AbstractService {
     protected void doStart() {
         LOG.debug("Starting up.");
 
-        broadcastQueue = new PriorityBlockingQueue<>(MAX_QUEUE_SIZE, Comparator.comparingInt(o -> o.weightMagnitude));
+        broadcastQueue = new ConcurrentSkipListSet<>(Comparator.comparingInt(o -> o.weightMagnitude));
         eventExecutor = Executors.newSingleThreadExecutor(NodeUtil.getNamedThreadFactory("TransactionBroadcaster"));
 
         eventExecutor.submit(this::broadcast);
@@ -55,14 +56,22 @@ public class TransactionBroadcaster extends AbstractService {
 
     protected void broadcast() {
         while (true) {
-            try {
-                TransactionViewModel toBroadcast = broadcastQueue.poll(1, TimeUnit.SECONDS);
+            TransactionViewModel toBroadcast = broadcastQueue.pollFirst();
 
-                if(toBroadcast != null) {
-                    doBroadcast(toBroadcast);
+            try {
+                if (toBroadcast == null) {
+                    synchronized (syncObject) {
+                        syncObject.wait(1000, 0);
+                    }
+                    toBroadcast = broadcastQueue.pollFirst();
+                } else {
+                    continue;
                 }
             } catch (InterruptedException e) {
-                // No element yet.
+            }
+
+            if (toBroadcast != null) {
+                doBroadcast(toBroadcast);
             }
         }
     }
@@ -80,13 +89,18 @@ public class TransactionBroadcaster extends AbstractService {
     }
 
     public void scheduleBroadcast(TransactionViewModel toBroadcast) {
-        while (broadcastQueue.size() >= MAX_QUEUE_SIZE) {
-            broadcastQueue.poll();
+        LOG.trace("Scheduling broadcast: {}", toBroadcast.getHash());
+        if (!broadcastQueue.contains(toBroadcast)) {
+            broadcastQueue.add(toBroadcast);
         }
 
-        LOG.trace("Scheduling broadcast: {}", toBroadcast.getHash());
-        if(!broadcastQueue.contains(toBroadcast)) {
-            broadcastQueue.offer(toBroadcast);
+        synchronized (syncObject) {
+            syncObject.notifyAll();
         }
+
+        while (broadcastQueue.size() >= MAX_QUEUE_SIZE) {
+            broadcastQueue.pollLast();
+        }
+
     }
 }

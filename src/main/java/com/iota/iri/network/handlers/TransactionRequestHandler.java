@@ -11,7 +11,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import java.security.SecureRandom;
 import java.util.Comparator;
 import java.util.Optional;
-import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 
 @ChannelHandler.Sharable
@@ -19,13 +19,15 @@ public class TransactionRequestHandler extends SimpleChannelInboundHandler<IOTAM
     private static final SecureRandom random = new SecureRandom();
     private final long MAX_QUEUE_SIZE;
     private final double P_REPLY_RANDOM_REQUEST;
-    private PriorityBlockingQueue<Pair<Hash, Neighbor>> queue;
+    private final Object syncObject = new Object();
+    private ConcurrentSkipListSet<Pair<Hash, Neighbor>> queue;
+
 
     public TransactionRequestHandler(long cacheSize, double randomRequestReplyChance) {
         super(false);
         MAX_QUEUE_SIZE = cacheSize;
         P_REPLY_RANDOM_REQUEST = randomRequestReplyChance;
-        queue = new PriorityBlockingQueue<Pair<Hash, Neighbor>>((int) MAX_QUEUE_SIZE, Comparator.comparingInt(o -> o.getLeft().trailingZeros()));
+        queue = new ConcurrentSkipListSet<>(Comparator.comparingInt(o -> o.getLeft().trailingZeros()));
     }
 
     @Override
@@ -47,17 +49,29 @@ public class TransactionRequestHandler extends SimpleChannelInboundHandler<IOTAM
         ctx.fireChannelRead(iotaMessage);
     }
 
-    public Optional<Pair<Hash, Neighbor>> nextRequest(long count, TimeUnit unit) throws InterruptedException {
-        return Optional.ofNullable(queue.poll(count, unit));
+    public Optional<Pair<Hash, Neighbor>> nextRequest(long count, TimeUnit timeUnit) throws InterruptedException {
+        Pair<Hash, Neighbor> ret = queue.pollFirst();
+
+        if (ret == null) {
+            synchronized (syncObject) {
+                syncObject.wait(timeUnit.toMillis(count));
+            }
+            ret = queue.pollFirst();
+        }
+        return Optional.ofNullable(ret);
     }
 
     protected void addRequest(Pair<Hash, Neighbor> of) {
-        if(!queue.contains(of)) {
+        if (!queue.contains(of)) {
             queue.add(of);
         }
 
+        synchronized (syncObject) {
+            syncObject.notifyAll();
+        }
+
         while (queue.size() > MAX_QUEUE_SIZE) {
-            queue.poll();
+            queue.pollLast();
         }
     }
 }

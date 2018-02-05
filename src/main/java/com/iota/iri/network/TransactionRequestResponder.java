@@ -55,7 +55,7 @@ public class TransactionRequestResponder extends AbstractService {
         while (true) {
             Optional<Pair<Hash, Neighbor>> nextRequest = Optional.empty();
             try {
-                nextRequest = requestHandler.nextRequest(1, TimeUnit.MINUTES);
+                nextRequest = requestHandler.nextRequest(1, TimeUnit.SECONDS);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
