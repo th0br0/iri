@@ -1,110 +1,68 @@
 package com.iota.iri.network;
 
-import java.net.DatagramPacket;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.util.concurrent.atomic.AtomicInteger;
+import io.netty.util.AttributeKey;
 
-public abstract class Neighbor {
+import java.net.InetAddress;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 
-    private final InetSocketAddress address;
-    
-    private long numberOfAllTransactions;
-    private long numberOfNewTransactions;
-    private long numberOfInvalidTransactions;
-    private long randomTransactionRequests;
-    private long numberOfSentTransactions;
+public class Neighbor {
+    public final static AttributeKey<Neighbor> KEY = AttributeKey.newInstance("neighbor");
 
-    private boolean flagged = false;
-    public boolean isFlagged() {
-        return flagged;
-    }
-    public void setFlagged(boolean flagged) {
-        this.flagged = flagged;
-    }
-    
-    private final static AtomicInteger numPeers = new AtomicInteger(0);
-    public static int getNumPeers() {
-        return numPeers.get();
-    }
-    public static void incNumPeers() {
-        numPeers.incrementAndGet();
-    }
-    public static void decNumPeers() {
-        int v = numPeers.decrementAndGet();
-        if (v < 0) numPeers.set(0);
+    private Protocol protocol;
+    private String host;
+    private int port;
+
+    private AtomicReference<InetAddress> address;
+
+    public Neighbor(Protocol protocol, String hostname, int port) {
+        this.protocol = protocol;
+        this.host = hostname;
+        this.port = port;
+
+        // Temporary initialiser.
+        address = new AtomicReference<>(InetAddress.getLoopbackAddress());
     }
 
-    private final String hostAddress;
-
-    public String getHostAddress() {
-        return hostAddress;
+    public Protocol getProtocol() {
+        return protocol;
     }
 
-
-    public Neighbor(final InetSocketAddress address, boolean isConfigured) {
-        this.address = address;
-        this.hostAddress = address.getAddress().getHostAddress();
-        this.flagged = isConfigured;
+    public String getHost() {
+        return host;
     }
 
-    public abstract void send(final DatagramPacket packet);
-    public abstract int getPort();
-    public abstract String connectionType();
-    public abstract boolean matches(SocketAddress address);
+    public int getPort() {
+        return port;
+    }
+
+    public AtomicReference<InetAddress> getAddress() {
+        return address;
+    }
 
     @Override
-    public boolean equals(final Object obj) {
-        return this == obj || !((obj == null) || (obj.getClass() != this.getClass())) && address.equals(((Neighbor) obj).address);
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Neighbor neighbor = (Neighbor) o;
+        return port == neighbor.port &&
+                protocol == neighbor.protocol &&
+                Objects.equals(host, neighbor.host);
     }
 
     @Override
     public int hashCode() {
-        return address.hashCode();
-    }
-    
-    public InetSocketAddress getAddress() {
-		return address;
-	}
-    
-    void incAllTransactions() {
-    	numberOfAllTransactions++;
-    }
-    
-    void incNewTransactions() {
-    	numberOfNewTransactions++;
+
+        return Objects.hash(protocol, host, port);
     }
 
-    void incRandomTransactionRequests() {
-        randomTransactionRequests++;
+    @Override
+    public String toString() {
+        return "Neighbor{" +
+                "protocol=" + protocol +
+                ", host='" + host + '\'' +
+                ", port=" + port +
+                ", address=" + address +
+                '}';
     }
-
-    public void incInvalidTransactions() {
-    	numberOfInvalidTransactions++;
-    }
-    
-    public void incSentTransactions() {
-        numberOfSentTransactions++;
-    }
-    
-    public long getNumberOfAllTransactions() {
-		return numberOfAllTransactions;
-	}
-    
-    public long getNumberOfInvalidTransactions() {
-		return numberOfInvalidTransactions;
-	}
-    
-    public long getNumberOfNewTransactions() {
-		return numberOfNewTransactions;
-	}
-
-	public long getNumberOfRandomTransactionRequests() {
-        return randomTransactionRequests;
-    }
-	
-	public long getNumberOfSentTransactions() {
-	    return numberOfSentTransactions;
-	}
-    
 }

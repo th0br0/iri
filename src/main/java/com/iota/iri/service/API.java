@@ -260,7 +260,8 @@ public class API {
                             Runtime.getRuntime().freeMemory(), System.getProperty("java.version"), Runtime.getRuntime().maxMemory(),
                             Runtime.getRuntime().totalMemory(), instance.milestone.latestMilestone, instance.milestone.latestMilestoneIndex,
                             instance.milestone.latestSolidSubtangleMilestone, instance.milestone.latestSolidSubtangleMilestoneIndex,
-                            instance.node.howManyNeighbors(), instance.node.queuedTransactionsSize(),
+                            //FIXME
+                            0, 0,
                             System.currentTimeMillis(), instance.tipsViewModel.size(),
                             instance.transactionRequester.numberOfTransactionsToRequest());
                 }
@@ -458,7 +459,7 @@ public class API {
 
         return CheckConsistency.create(state,info);
     }
-    
+
     private double getParameterAsDouble(Map<String, Object> request, String paramName) throws ValidationException {
         validateParamExists(request, paramName);
         final double result;
@@ -525,15 +526,16 @@ public class API {
 
     private AbstractResponse removeNeighborsStatement(List<String> uris) {
         int numberOfRemovedNeighbors = 0;
-        try {
+        //try {
             for (final String uriString : uris) {
                 log.info("Removing neighbor: " + uriString);
-                if (instance.node.removeNeighbor(new URI(uriString),true)) {
+                // FIXME
+                /*if (instance.node.removeNeighbor(new URI(uriString),true)) {
                     numberOfRemovedNeighbors++;
                 }
             }
         } catch (URISyntaxException|RuntimeException e) {
-            return ErrorResponse.create("Invalid uri scheme: " + e.getLocalizedMessage());
+            return ErrorResponse.create("Invalid uri scheme: " + e.getLocalizedMessage()); */
         }
         return RemoveNeighborsResponse.create(numberOfRemovedNeighbors);
     }
@@ -646,7 +648,7 @@ public class API {
     }
 
     private AbstractResponse getNeighborsStatement() {
-        return GetNeighborsResponse.create(instance.node.getNeighbors());
+        return GetNeighborsResponse.create(instance.network.getNeighborManager().getNeighbors());
     }
 
     private AbstractResponse getNewInclusionStateStatement(final List<String> trans, final List<String> tps) throws Exception {
@@ -850,7 +852,7 @@ public class API {
         for (final TransactionViewModel transactionViewModel : elements) {
             //push first in line to broadcast
             transactionViewModel.weightMagnitude = Curl.HASH_LENGTH;
-            instance.node.broadcast(transactionViewModel);
+            instance.network.broadcast(transactionViewModel);
         }
     }
 
@@ -988,17 +990,16 @@ public class API {
 
     private AbstractResponse addNeighborsStatement(final List<String> uris) {
         int numberOfAddedNeighbors = 0;
-        try {
-            for (final String uriString : uris) {
-                log.info("Adding neighbor: " + uriString);
-                final Neighbor neighbor = instance.node.newNeighbor(new URI(uriString), true);
-                if (!instance.node.getNeighbors().contains(neighbor)) {
-                    instance.node.getNeighbors().add(neighbor);
+        for (final String uriString : uris) {
+            log.info("Adding neighbor: " + uriString);
+
+            try {
+                if(instance.network.getNeighborManager().addNeighbor(NodeUtil.neighborFromURI(new URI(uriString)))) {
                     numberOfAddedNeighbors++;
                 }
+            } catch (URISyntaxException e) {
+                e.printStackTrace();
             }
-        } catch (URISyntaxException|RuntimeException e) {
-            return ErrorResponse.create("Invalid uri scheme: " + e.getLocalizedMessage());
         }
         return AddedNeighborsResponse.create(numberOfAddedNeighbors);
     }

@@ -186,7 +186,7 @@ public class Milestone {
         else {
             for (final List<TransactionViewModel> bundleTransactionViewModels : bundleTransactions) {
 
-                //if (Arrays.equals(bundleTransactionViewModels.get(0).getHash(),transactionViewModel.getHash())) {
+                //if (Arrays.equals(bundleTransactionViewModels.get(0).getTxHash(),transactionViewModel.getTxHash())) {
                 if (bundleTransactionViewModels.get(0).getHash().equals(transactionViewModel.getHash())) {
 
                     //final TransactionViewModel transactionViewModel2 = StorageTransactions.instance().loadTransaction(transactionViewModel.trunkTransactionPointer);

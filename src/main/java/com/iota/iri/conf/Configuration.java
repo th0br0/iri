@@ -30,6 +30,7 @@ public class Configuration {
         API_HOST,
         UDP_RECEIVER_PORT,
         TCP_RECEIVER_PORT,
+        LISTEN_HOST,
         TESTNET,
         DEBUG,
         REMOTE_LIMIT_API,
@@ -103,6 +104,7 @@ public class Configuration {
         conf.put(DefaultConfSettings.RESCAN_DB.name(), "false");
         conf.put(DefaultConfSettings.MAINNET_MWM.name(), "14");
         conf.put(DefaultConfSettings.TESTNET_MWM.name(), "13");
+        conf.put(DefaultConfSettings.LISTEN_HOST.name(), "0.0.0.0");
 
         // Pick a number based on best performance
         conf.put(DefaultConfSettings.MIN_RANDOM_WALKS.name(), "5");
