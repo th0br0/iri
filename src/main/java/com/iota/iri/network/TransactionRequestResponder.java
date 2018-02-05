@@ -28,12 +28,12 @@ public class TransactionRequestResponder extends AbstractService {
     private final TransactionRequester transactionRequester;
     private final Milestone milestone;
     private final TipsViewModel tipsViewModel;
-    private final double P_SELECT_MILESTONE;
+    private final double P_SEND_MILESTONE;
 
     private ExecutorService pool;
 
-    public TransactionRequestResponder(NeighborConnectionManager neighborConnectionManager, TransactionRequestHandler transactionRequestHandler, Tangle tangle, TipsViewModel tipsViewModel, Milestone milestone, TransactionRequester transactionRequester, double pSelectMilestone) {
-        this.P_SELECT_MILESTONE = pSelectMilestone;
+    public TransactionRequestResponder(NeighborConnectionManager neighborConnectionManager, TransactionRequestHandler transactionRequestHandler, Tangle tangle, TipsViewModel tipsViewModel, Milestone milestone, TransactionRequester transactionRequester, double pSendMilestone) {
+        this.P_SEND_MILESTONE = pSendMilestone;
 
         this.tangle = tangle;
         this.transactionRequester = transactionRequester;
@@ -69,12 +69,15 @@ public class TransactionRequestResponder extends AbstractService {
                 Hash ourRequest;
 
                 if (toLoad.equals(Hash.NULL_HASH)) {
-
-                    if (random.nextDouble() < P_SELECT_MILESTONE) {
+                    if (random.nextDouble() < P_SEND_MILESTONE) {
                         toLoad = milestone.latestMilestone;
                     } else {
                         toLoad = tipsViewModel.getRandomSolidTipHash();
                     }
+                }
+
+                if (toLoad == null) {
+                    toLoad = Hash.NULL_HASH;
                 }
 
                 try {
@@ -100,7 +103,7 @@ public class TransactionRequestResponder extends AbstractService {
         LOG.info("Shutting down.");
         try {
             pool.shutdown();
-            pool.awaitTermination(5, TimeUnit.SECONDS);
+            pool.awaitTermination(30, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             LOG.error("Error occured during shutdown: {}", e);
         }

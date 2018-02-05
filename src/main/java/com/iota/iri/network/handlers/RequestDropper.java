@@ -1,10 +1,12 @@
 package com.iota.iri.network.handlers;
 
+import com.iota.iri.network.IOTAMessage;
 import com.iota.iri.network.NettyTCPClient;
+import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.util.ReferenceCountUtil;
+import io.netty.channel.socket.SocketChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,9 +26,12 @@ public class RequestDropper extends SimpleChannelInboundHandler {
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
-        if (random.nextDouble() < P_DROP_PACKET) {
+        if (msg instanceof ByteBuf && random.nextDouble() < P_DROP_PACKET) {
             LOG.trace("Dropping message.");
-            ReferenceCountUtil.release(msg);
+
+            if (ctx.channel() instanceof SocketChannel) {
+                ((ByteBuf) msg).skipBytes(IOTAMessage.MESSAGE_SIZE + IOTAMessage.CRC32_LENGTH);
+            }
             return;
         }
 

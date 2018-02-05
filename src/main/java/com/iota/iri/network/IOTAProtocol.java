@@ -45,8 +45,8 @@ public class IOTAProtocol {
         return new ChannelHandler[]{
                 // FIXME discard CRC32 in old IRI
                 new FixedLengthFrameDecoder(protocol == Protocol.UDP ? IOTAMessage.MESSAGE_SIZE : (IOTAMessage.MESSAGE_SIZE + IOTAMessage.CRC32_LENGTH)),
-                new IOTAMessage.IOTAMessageDecoder(),
                 requestDropper,
+                new IOTAMessage.IOTAMessageDecoder(),
                 transactionRequestHandler,
                 transactionCacher,
                 messageVerifier,
