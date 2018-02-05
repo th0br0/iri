@@ -66,7 +66,7 @@ public class NettyTCPServer {
             }
         });
 
-        bindFuture = bootstrap.bind().syncUninterruptibly();
+        bindFuture = bootstrap.bind(TCP_PORT).syncUninterruptibly();
 
         LOG.info("Successfully initialised Netty TCP server.");
     }

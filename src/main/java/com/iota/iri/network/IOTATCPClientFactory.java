@@ -43,7 +43,12 @@ public class IOTATCPClientFactory {
                 } else {
                     // in process of connecting
                     ConnectingChannel future = (ConnectingChannel) entry;
-                    client = future.waitForChannel();
+                    try {
+                        client = future.waitForChannel();
+                    } catch (Exception e) {
+                        clients.remove(neighbor, entry);
+                        throw e;
+                    }
 
                     clients.replace(neighbor, future, client);
                 }
