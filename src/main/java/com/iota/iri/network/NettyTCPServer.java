@@ -30,10 +30,12 @@ public class NettyTCPServer {
     private ServerBootstrap bootstrap;
     private ChannelFuture bindFuture;
     private EventLoopGroup eventGroup;
+    private NeighborAcceptor neighborAcceptor;
 
     public NettyTCPServer(String listenHost, int port, IOTAProtocol protocol, NeighborManager neighborManager) {
         this.protocol = protocol;
         this.neighborManager = neighborManager;
+        this.neighborAcceptor = new NeighborAcceptor(neighborManager);
 
         TCP_PORT = port;
         LISTEN_HOST = listenHost;
@@ -56,10 +58,10 @@ public class NettyTCPServer {
 
         bootstrap.childHandler(new ChannelInitializer<SocketChannel>() {
             @Override
-            protected void initChannel(SocketChannel ch) throws Exception {
+            protected void initChannel(SocketChannel ch)  {
                 LOG.info("Accepted new TCP connection. " + ch);
 
-                ch.pipeline().addLast(new NeighborAcceptor(neighborManager));
+                ch.pipeline().addLast(neighborAcceptor);
                 ch.pipeline().addLast(protocol.getServerChannelHandlers(Protocol.TCP));
             }
         });
@@ -90,7 +92,7 @@ public class NettyTCPServer {
      * Verifies inbound TCP connection to come from known neighbor (as identified by TCP Receiver port)
      */
     @ChannelHandler.Sharable
-    static class NeighborAcceptor extends ChannelInboundHandlerAdapter {
+    protected static class NeighborAcceptor extends ChannelInboundHandlerAdapter {
         private final static int PORT_BYTES = 10;
 
         private final NeighborManager neighborManager;

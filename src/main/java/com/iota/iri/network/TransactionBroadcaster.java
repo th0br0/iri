@@ -68,7 +68,7 @@ public class TransactionBroadcaster extends AbstractService {
     }
 
     protected void doBroadcast(TransactionViewModel toBroadcast) {
-        connectionManager.getActiveClients().forEach((c) -> {
+        connectionManager.getActiveClients().forEachRemaining((c) -> {
             Hash toRequest = Hash.NULL_HASH;
             try {
                 toRequest = transactionRequester.transactionToRequest();

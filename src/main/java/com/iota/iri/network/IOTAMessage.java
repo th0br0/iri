@@ -53,7 +53,7 @@ public abstract class IOTAMessage {
     }
 
     @ChannelHandler.Sharable
-    static class IOTAMessageEncoder extends ChannelOutboundHandlerAdapter {
+    public static class IOTAMessageEncoder extends ChannelOutboundHandlerAdapter {
 
         private final boolean addCRC32;
 

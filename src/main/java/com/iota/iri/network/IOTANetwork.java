@@ -44,10 +44,16 @@ public class IOTANetwork extends AbstractService {
     @Override
     protected void doStop() {
         LOG.debug("Shutting down.");
-        tipsRequester.stopAsync().awaitTerminated();
-        transactionBroadcaster.stopAsync().awaitTerminated();
-        neighborConnectionManager.stopAsync().awaitTerminated();
-        connectionManager.stopAsync().awaitTerminated();
+        tipsRequester.stopAsync();
+        transactionBroadcaster.stopAsync();
+        neighborConnectionManager.stopAsync();
+        connectionManager.stopAsync();
+
+        tipsRequester.awaitTerminated();
+        transactionBroadcaster.awaitTerminated();
+        neighborConnectionManager.awaitTerminated();
+        connectionManager.awaitTerminated();
+
         LOG.info("Shutdown complete.");
         notifyStopped();
     }

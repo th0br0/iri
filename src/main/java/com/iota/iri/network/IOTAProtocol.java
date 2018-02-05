@@ -4,16 +4,14 @@ import com.iota.iri.TransactionValidator;
 import com.iota.iri.network.handlers.RequestDropper;
 import com.iota.iri.network.handlers.TransactionCacher;
 import com.iota.iri.network.handlers.TransactionRequestHandler;
+import com.iota.iri.utils.Converter;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.FixedLengthFrameDecoder;
-import io.netty.handler.codec.MessageToMessageDecoder;
 import io.netty.util.ReferenceCountUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.List;
 
 /**
  * @author Andreas C. Osowski

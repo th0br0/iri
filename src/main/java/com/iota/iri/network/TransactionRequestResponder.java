@@ -52,7 +52,6 @@ public class TransactionRequestResponder extends AbstractService {
     }
 
     private void processRequests() {
-
         while (true) {
             Optional<Pair<Hash, Neighbor>> nextRequest = Optional.empty();
             try {

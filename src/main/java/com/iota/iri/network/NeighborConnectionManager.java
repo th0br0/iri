@@ -14,13 +14,9 @@ import org.slf4j.LoggerFactory;
 
 import java.net.InetAddress;
 import java.net.URI;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 public class NeighborConnectionManager extends AbstractService {
     private static final Logger LOG = LoggerFactory.getLogger(NeighborConnectionManager.class);
@@ -76,8 +72,8 @@ public class NeighborConnectionManager extends AbstractService {
         notifyStopped();
     }
 
-    public List<IOTAClient> getActiveClients() {
-        return neighborConnections.values().stream().filter((c) -> !c.isClosed()).collect(Collectors.toList());
+    public Iterator<IOTAClient> getActiveClients() {
+        return neighborConnections.values().stream().filter((c) -> !c.isClosed()).iterator();
     }
 
     public Optional<IOTAClient> getClientForNeighbor(Neighbor n) {

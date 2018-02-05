@@ -50,9 +50,6 @@ public class NettyTCPClient {
         bootstrap.option(ChannelOption.SO_KEEPALIVE, true);
         bootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5 * 1000);
 
-        bootstrap.option(ChannelOption.SO_SNDBUF, 2 * INode.TRANSACTION_PACKET_SIZE);
-        bootstrap.option(ChannelOption.SO_RCVBUF, 2 * INode.TRANSACTION_PACKET_SIZE);
-
         bootstrap.handler(new ChannelInitializer<SocketChannel>() {
             @Override
             public void initChannel(SocketChannel ch) {

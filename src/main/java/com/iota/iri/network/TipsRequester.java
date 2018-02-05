@@ -43,7 +43,7 @@ public class TipsRequester extends AbstractService {
             return;
         }
 
-        connectionManager.getActiveClients().forEach((c) -> c.send(model, model.getHash()));
+        connectionManager.getActiveClients().forEachRemaining((c) -> c.send(model, model.getHash()));
     }
 
     @Override
