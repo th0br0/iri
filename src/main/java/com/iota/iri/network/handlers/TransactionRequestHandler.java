@@ -62,6 +62,7 @@ public class TransactionRequestHandler extends SimpleChannelInboundHandler<IOTAM
     }
 
     protected void addRequest(Pair<Hash, Neighbor> of) {
+        // FIXME this discards multiple random tip requests.
         if (!queue.contains(of)) {
             queue.add(of);
         }

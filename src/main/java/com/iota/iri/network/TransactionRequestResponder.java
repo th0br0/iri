@@ -83,16 +83,26 @@ public class TransactionRequestResponder extends AbstractService {
                     model = TransactionViewModel.fromHash(tangle, toLoad);
                 } catch (Exception e) {
                     LOG.warn("Error occured during model loading {}: {}", toLoad, e.getMessage());
-                    return;
+                    continue;
                 }
 
-                try {
-                    ourRequest = transactionRequester.transactionToRequest();
-                } catch (Exception e) {
-                    LOG.warn("Error occured when fetching new request: " + e.getMessage());
-                    return;
+                if (model != null && model.getType() == TransactionViewModel.FILLED_SLOT) {
+                    try {
+                        ourRequest = transactionRequester.transactionToRequest();
+                    } catch (Exception e) {
+                        LOG.warn("Error occured when fetching new request: " + e.getMessage());
+                        continue;
+                    }
+                    connectionManager.getClientForNeighbor(request.getRight()).ifPresent((c) -> c.send(model, ourRequest));
+                } else {
+                    try {
+                        transactionRequester.requestTransaction(request.getLeft(), false);
+                    } catch (Exception e) {
+                        LOG.debug("Error requesting transaction.");
+                        continue;
+                    }
                 }
-                connectionManager.getClientForNeighbor(request.getRight()).ifPresent((c) -> c.send(model, ourRequest));
+
             }
         }
     }

@@ -47,10 +47,10 @@ public class NettyTCPServer {
         final String name = "IRI-TCP" + " (" + TCP_PORT + ")";
 
         if (Epoll.isAvailable()) {
-            eventGroup = new EpollEventLoopGroup(2, NodeUtil.getNamedThreadFactory(name));
+            eventGroup = new EpollEventLoopGroup(4, NodeUtil.getNamedThreadFactory(name));
             bootstrap.group(eventGroup).channel(EpollServerSocketChannel.class);
         } else {
-            eventGroup = new NioEventLoopGroup(2, NodeUtil.getNamedThreadFactory(name));
+            eventGroup = new NioEventLoopGroup(4, NodeUtil.getNamedThreadFactory(name));
             bootstrap.group(eventGroup).channel(NioServerSocketChannel.class);
         }
 

@@ -1,7 +1,7 @@
 package com.iota.iri.network.handlers;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.iota.iri.network.IOTAMessage;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
@@ -19,7 +19,7 @@ public class TransactionCacher extends MessageToMessageDecoder<IOTAMessage> {
     private final Cache<ByteBuffer, Integer> cache;
 
     public TransactionCacher(long cacheSize) {
-        this.cache = CacheBuilder.newBuilder()
+        this.cache = Caffeine.newBuilder()
                 .maximumSize(cacheSize).build();
     }
 
