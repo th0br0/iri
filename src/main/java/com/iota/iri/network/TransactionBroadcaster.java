@@ -84,7 +84,7 @@ public class TransactionBroadcaster extends AbstractService {
             } catch (Exception e) {
             }
 
-            c.send(toBroadcast, toRequest);
+            c.send(toBroadcast, toRequest == null ? toBroadcast.getHash() : toRequest);
         });
     }
 

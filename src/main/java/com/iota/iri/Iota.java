@@ -79,7 +79,8 @@ public class Iota {
         network = new IOTANetwork(this);
         transactionRequestResponder = new TransactionRequestResponder(network.getNeighborConnectionManager(), network.getConnectionManager().getProtocol().getTransactionRequestHandler(), tangle,
                 tipsViewModel, milestone, transactionRequester,
-                configuration.doubling(Configuration.DefaultConfSettings.P_SEND_MILESTONE.name()));
+                configuration.doubling(Configuration.DefaultConfSettings.P_SEND_MILESTONE.name()),
+                configuration.doubling(Configuration.DefaultConfSettings.P_PROPAGATE_REQUEST.name()));
     }
 
     public void init() throws Exception {

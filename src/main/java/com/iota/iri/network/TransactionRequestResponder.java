@@ -29,11 +29,13 @@ public class TransactionRequestResponder extends AbstractService {
     private final Milestone milestone;
     private final TipsViewModel tipsViewModel;
     private final double P_SEND_MILESTONE;
+    private final double P_PROPAGATE_REQUEST;
 
     private ExecutorService pool;
 
-    public TransactionRequestResponder(NeighborConnectionManager neighborConnectionManager, TransactionRequestHandler transactionRequestHandler, Tangle tangle, TipsViewModel tipsViewModel, Milestone milestone, TransactionRequester transactionRequester, double pSendMilestone) {
+    public TransactionRequestResponder(NeighborConnectionManager neighborConnectionManager, TransactionRequestHandler transactionRequestHandler, Tangle tangle, TipsViewModel tipsViewModel, Milestone milestone, TransactionRequester transactionRequester, double pSendMilestone, double pPropagateRequest) {
         this.P_SEND_MILESTONE = pSendMilestone;
+        this.P_PROPAGATE_REQUEST = pPropagateRequest;
 
         this.tangle = tangle;
         this.transactionRequester = transactionRequester;
@@ -93,8 +95,8 @@ public class TransactionRequestResponder extends AbstractService {
                         LOG.warn("Error occured when fetching new request: " + e.getMessage());
                         continue;
                     }
-                    connectionManager.getClientForNeighbor(request.getRight()).ifPresent((c) -> c.send(model, ourRequest));
-                } else {
+                    connectionManager.getClientForNeighbor(request.getRight()).ifPresent((c) -> c.send(model, ourRequest == null ? model.getHash() : ourRequest));
+                } else if (!request.getLeft().equals(Hash.NULL_HASH) && random.nextDouble() < P_PROPAGATE_REQUEST) {
                     try {
                         transactionRequester.requestTransaction(request.getLeft(), false);
                     } catch (Exception e) {

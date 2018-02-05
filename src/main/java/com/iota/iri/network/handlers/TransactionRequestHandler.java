@@ -36,13 +36,12 @@ public class TransactionRequestHandler extends SimpleChannelInboundHandler<IOTAM
 
         Hash reqHash = msg.getReqHash();
 
-        if (reqHash.equals(Hash.NULL_HASH) && random.nextDouble() < P_REPLY_RANDOM_REQUEST) {
+        if (reqHash.equals(msg.getTransaction().getHash()) && random.nextDouble() < P_REPLY_RANDOM_REQUEST) {
             // Random transaction request
             Neighbor n = ctx.channel().attr(Neighbor.KEY).get();
             addRequest(Pair.of(Hash.NULL_HASH, n));
         } else {
             Neighbor n = ctx.channel().attr(Neighbor.KEY).get();
-
             addRequest(Pair.of(reqHash, n));
         }
 

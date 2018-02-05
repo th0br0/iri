@@ -102,7 +102,6 @@ public class IOTATCPClientFactory {
         private final Neighbor neighbor;
         private final IOTATCPClientFactory clientFactory;
 
-        private boolean disposeRequestClient = false;
         private volatile Throwable error;
 
         private IOTAClient iotaClient = null;
@@ -115,7 +114,6 @@ public class IOTATCPClientFactory {
         private boolean dispose() {
             boolean result;
             synchronized (connectLock) {
-                disposeRequestClient = true;
                 result = true;
 
                 connectLock.notifyAll();

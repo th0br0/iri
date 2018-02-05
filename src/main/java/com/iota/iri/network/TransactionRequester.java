@@ -131,9 +131,6 @@ public class TransactionRequester {
             //LOG.info("Transactions to request = {}", numberOfTransactionsToRequest() + " / " + TransactionViewModel.getNumberOfStoredTransactions() + " (" + (now - beginningTime) + " ms ). " );
         }
 
-        if(hash == null) {
-            return Hash.NULL_HASH;
-        }
         return hash;
     }
 
