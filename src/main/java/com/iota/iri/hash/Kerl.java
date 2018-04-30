@@ -12,14 +12,14 @@ public class Kerl implements Sponge {
     public static final int BYTE_HASH_LENGTH = BIT_HASH_LENGTH / 8;
 
     private byte[] byte_state;
-    private int[] trit_state;
+    private byte[] trit_state;
     private final Keccak.Digest384 keccak;
 
     protected Kerl() {
 
         this.keccak = new Keccak.Digest384();
         this.byte_state = new byte[BYTE_HASH_LENGTH];
-        this.trit_state = new int[Sponge.HASH_LENGTH];
+        this.trit_state = new byte[Sponge.HASH_LENGTH];
     }
 
     @Override
@@ -29,7 +29,7 @@ public class Kerl implements Sponge {
     }
 
     @Override
-    public void absorb(final int[] trits, int offset, int length) {
+    public void absorb(final byte[] trits, int offset, int length) {
 
         if (length % 243 != 0) {
             throw new RuntimeException("Illegal length: " + length);
@@ -51,7 +51,7 @@ public class Kerl implements Sponge {
     }
 
     @Override
-    public void squeeze(final int[] trits, int offset, int length) {
+    public void squeeze(final byte[] trits, int offset, int length) {
 
         if (length % 243 != 0) {
             throw new RuntimeException("Illegal length: " + length);
@@ -82,7 +82,7 @@ public class Kerl implements Sponge {
         }
     }
 
-    public static BigInteger bigIntFromTrits(final int[] trits, final int offset, final int size) {
+    public static BigInteger bigIntFromTrits(final byte[] trits, final int offset, final int size) {
 
         BigInteger value = BigInteger.ZERO;
 
@@ -99,7 +99,7 @@ public class Kerl implements Sponge {
         return new BigInteger(Arrays.copyOfRange(bytes, offset, offset + size));
     }
 
-    public static void tritsFromBigInt(final BigInteger value, int[] destination, int offset, int size) {
+    public static void tritsFromBigInt(final BigInteger value, byte[] destination, int offset, int size) {
 
         if(destination.length - offset < size) {
             throw new IllegalArgumentException("Destination array has invalid size");
@@ -117,14 +117,14 @@ public class Kerl implements Sponge {
                 remainder = Converter.MIN_TRIT_VALUE;
                 absoluteValue = absoluteValue.add(BigInteger.ONE);
             }
-            destination[offset  + i] = remainder;
+            destination[offset  + i] = (byte) remainder;
         }
 
         if (value.compareTo(BigInteger.ZERO) < 0) {
 
             for (int i = 0; i < size; i++) {
 
-                destination[offset + i] = -destination[offset + i];
+                destination[offset + i] = (byte) -destination[offset + i];
             }
         }
     }

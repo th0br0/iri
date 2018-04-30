@@ -48,9 +48,12 @@ public class TangleTest {
     public void save() throws Exception {
         Transaction transaction = new Transaction();
         Random r = new Random();
-        int[] hash = new int[Curl.HASH_LENGTH],
-                trits = Arrays.stream(new int[TransactionViewModel.TRINARY_SIZE])
-                        .map(i -> r.nextInt(3)-1).toArray();
+        byte[] hash = new byte[Curl.HASH_LENGTH];
+        byte[] trits= new byte[TransactionViewModel.TRINARY_SIZE];
+        for(int i = 0; i < trits.length; i++) {
+          trits[i] = (byte) (r.nextInt(3) - 1);
+        }
+
         Sponge curl = SpongeFactory.create(SpongeFactory.Mode.CURLP81);
         curl.absorb(trits, 0, trits.length);
         curl.squeeze(hash, 0, Curl.HASH_LENGTH);
@@ -62,7 +65,7 @@ public class TangleTest {
 
     @Test
     public void getKeysStartingWithValue() throws Exception {
-        int[] trits = getRandomTransactionTrits();
+        byte[] trits = getRandomTransactionTrits();
         TransactionViewModel transactionViewModel = new TransactionViewModel(trits, Hash.calculate(SpongeFactory.Mode.CURLP81, trits));
         transactionViewModel.store(tangle);
         Set<Indexable> tag = tangle.keysStartingWith(Transaction.class, Arrays.copyOf(transactionViewModel.getTagValue().bytes(), 15));
@@ -74,8 +77,8 @@ public class TangleTest {
         /*
         Transaction transaction = new Transaction();
         Random r = new Random();
-        int[] hash = new int[Curl.HASH_LENGTH],
-                trits = Arrays.stream(new int[TransactionViewModel.TRINARY_SIZE])
+        byte[] hash = new byte[Curl.HASH_LENGTH],
+                trits = Arrays.stream(new byte[TransactionViewModel.TRINARY_SIZE])
                         .map(i -> r.nextInt(3)-1).toArray();
         Curl curl = new Curl();
         curl.absorb(trits, 0, trits.length);

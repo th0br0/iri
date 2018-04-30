@@ -52,7 +52,7 @@ public class IXITest {
                         "var IXIResponse = Java.type(\"com.iota.iri.service.dto.IXIResponse\");\n" +
                         "API.put(\"getParser\", new Callable({\n" +
                         "call: function(req) {\n" +
-                        "var IntArray = Java.type(\"int[]\");\n" +
+                        "var IntArray = Java.type(\"byte[]\");\n" +
                         "var out = new IntArray(Math.floor(Math.random()*9)+1);\n" +
                         "out[0] = 2;\n" +
                         "var r = IXIResponse.create({\n" +

@@ -20,7 +20,7 @@ public class SignedFiles {
     private static final Logger log = LoggerFactory.getLogger(SignedFiles.class);
 
     public static boolean isFileSignatureValid(String filename, String signatureFilename, String publicKey, int depth, int index) {
-        int[] trits = new int[Curl.HASH_LENGTH * 3];
+        byte[] trits = new byte[Curl.HASH_LENGTH * 3];
         Sponge curl = SpongeFactory.create(SpongeFactory.Mode.KERL);
         BufferedReader reader = null;
         //digest file
@@ -36,7 +36,7 @@ public class SignedFiles {
             while ((line = reader.readLine()) != null) {
                 Converter.trits(Converter.asciiToTrytes(line), trits, 0);
                 curl.absorb(trits, 0, trits.length);
-                Arrays.fill(trits, 0);
+                Arrays.fill(trits, (byte) 0);
             }
         } catch (IOException e) {
             log.error("Can't read file " + filename, e);
@@ -45,12 +45,12 @@ public class SignedFiles {
             IOUtils.closeQuietly(reader);
         }
         //validate signature
-        trits = new int[Curl.HASH_LENGTH];
+        trits = new byte[Curl.HASH_LENGTH];
         curl.squeeze(trits, 0, Curl.HASH_LENGTH);
         SpongeFactory.Mode mode = SpongeFactory.Mode.CURLP81;
-        int[] digests = new int[0];
-        int[] bundle = ISS.normalizedBundle(trits);
-        int[] root;
+        byte[] digests = new byte[0];
+        byte[] bundle = ISS.normalizedBundle(trits);
+        byte[] root;
         int i;
         try {
             InputStream inputStream = SignedFiles.class.getResourceAsStream(signatureFilename);
@@ -61,7 +61,7 @@ public class SignedFiles {
             reader = new BufferedReader(new InputStreamReader(bufferedInputStream));
             String line;
             for (i = 0; i < 3 && (line = reader.readLine()) != null; i++) {
-                int[] lineTrits = Converter.allocateTritsForTrytes(line.length());
+                byte[] lineTrits = Converter.allocateTritsForTrytes(line.length());
                 Converter.trits(line, lineTrits, 0);
                 digests = ArrayUtils.addAll(
                         digests,
@@ -70,7 +70,7 @@ public class SignedFiles {
                                 , lineTrits));
             }
             if ((line = reader.readLine()) != null) {
-                int[] lineTrits = Converter.allocateTritsForTrytes(line.length());
+                byte[] lineTrits = Converter.allocateTritsForTrytes(line.length());
                 Converter.trits(line, lineTrits, 0);
                 root = ISS.getMerkleRoot(mode, ISS.address(mode, digests), lineTrits, 0, index, depth);
             }
@@ -78,7 +78,7 @@ public class SignedFiles {
                 root = ISS.address(mode, digests);
             }
 
-            int[] pubkeyTrits = Converter.allocateTritsForTrytes(publicKey.length());
+            byte[] pubkeyTrits = Converter.allocateTritsForTrytes(publicKey.length());
             Converter.trits(publicKey, pubkeyTrits, 0);
             if (Arrays.equals(pubkeyTrits, root)) {
                 //valid

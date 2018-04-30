@@ -33,7 +33,7 @@ public class PearlDiver {
         }
     }
 
-    public synchronized boolean search(final int[] transactionTrits, final int minWeightMagnitude,
+    public synchronized boolean search(final byte[] transactionTrits, final int minWeightMagnitude,
         int numberOfThreads) {
 
         if (transactionTrits.length != TRANSACTION_LENGTH) {
@@ -175,8 +175,8 @@ public class PearlDiver {
                             }
                             for (int i = 0; i < CURL_HASH_LENGTH; i++) {
                                 transactionTrits[TRANSACTION_LENGTH - CURL_HASH_LENGTH + i] =
-                                    (midCurlStateCopyLow[i] & outMask) == 0 ? 1
-                                        : (midCurlStateCopyHigh[i] & outMask) == 0 ? -1 : 0;
+                                    (midCurlStateCopyLow[i] & outMask) == 0 ? ((byte) 1)
+                                        : (midCurlStateCopyHigh[i] & outMask) == 0 ? ((byte) -1) : ((byte) 0);
                             }
                             syncObj.notifyAll();
                         }
